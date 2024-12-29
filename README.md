@@ -31,3 +31,13 @@ config.json：
 后端没问题了就去修改server目录下的token.json，把里面的token的值改为你机器人的token，然后重启后端程序  
 然后确定config.json是后端地址即可  
 
+### Windows
+
+下载bot python框架：https://124.221.67.43/fbBot.zip  
+
+**将server里面的东西复制到框架根目录下面**  
+
+后端完成：
+![image](https://github.com/user-attachments/assets/b411f701-82ad-47d1-b3bb-2f3301e8c4f9)  
+
+按照linux的方法扔前端目录、改文件即可
