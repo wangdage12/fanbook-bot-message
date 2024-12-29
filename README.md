@@ -33,11 +33,24 @@ config.json：
 
 ### Windows
 
-下载bot python框架：https://124.221.67.43/fbBot.zip  
+下载bot python框架：[框架安装程序](https://124.221.67.43/hj_update.exe)  
 
-**将server里面的东西复制到框架根目录下面**  
+**单独创建一个文件夹，先将安装程序放里面安装，然后server里面的东西复制到框架的根目录下面**  
 
 后端完成：
 ![image](https://github.com/user-attachments/assets/b411f701-82ad-47d1-b3bb-2f3301e8c4f9)  
 
 按照linux的方法扔前端目录、改文件即可
+
+## 后续操作
+
+部署完以后不能马上使用，先改server目录下的data.json，里面是一些基本配置  
+
+| 键名 | 类型 | 示例 | 描述 |
+| - | - | - | - |
+| keys | json | {"服务器id":"key"} | 服务器的安全密钥，自己设置 |
+| black_list | array[string] | ["114514"] | 黑名单服务器，是一个数组，里面是封禁的服务器id |
+| white_list | array[string] | ["114514"] | 白名单服务器，即可信服务器，批量发送的消息下面会有显示可信服务器 |
+| free_list | array[string] | ["ALL"] | 预留，免费使用的服务器id，第一项ALL指所有 |
+
+如果black_list和white_list里面同时有同一个服务器id，那么总是显示封禁
