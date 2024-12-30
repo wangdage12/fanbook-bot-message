@@ -48,7 +48,7 @@ config.json：
 
 | 键名 | 类型 | 示例 | 描述 |
 | - | - | - | - |
-| keys | json | {"服务器id":"key"} | 服务器的安全密钥，自己设置 |
+| keys | json | {"服务器id":"key"} | 服务器的安全密钥，自己设置，建议uuid4 |
 | black_list | array[string] | ["114514"] | 黑名单服务器，是一个数组，里面是封禁的服务器id |
 | white_list | array[string] | ["114514"] | 白名单服务器，即可信服务器，批量发送的消息下面会有显示可信服务器 |
 | free_list | array[string] | ["ALL"] | 预留，免费使用的服务器id，第一项ALL指所有 |
