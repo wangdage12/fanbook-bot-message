@@ -200,7 +200,6 @@ def SendMessageForAllUser(clid='',gid='',token='',text='',sl=0,yz=0,name='',Ttim
                 print('获取成员数量失败，你应该检查服务器id')
         else:
             print('机器人没有权限发送消息或没有发送消息白名单')
-            print(qx)
     except:
         print('token不正确')
 
