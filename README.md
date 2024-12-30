@@ -53,4 +53,5 @@ config.json：
 | white_list | array[string] | ["114514"] | 白名单服务器，即可信服务器，批量发送的消息下面会有显示可信服务器 |
 | free_list | array[string] | ["ALL"] | 预留，免费使用的服务器id，第一项ALL指所有 |
 
-如果black_list和white_list里面同时有同一个服务器id，那么总是显示封禁
+如果black_list和white_list里面同时有同一个服务器id，那么总是显示封禁  
+修改data.json实时生效
