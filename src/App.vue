@@ -29,53 +29,80 @@
   <div v-if="p == 2">
     <f-page-header :on-back="back1" title="发送消息卡片" />
     <f-alert :alert-list="alertList1" simple title="注意：" type="warning" />
-    <Alert message="提示：点击色块快速选择颜色" type="info" />
-    <f-text>卡片标题背景色从：</f-text>
-    <Input v-model:value="color" placeholder="颜色值" width="130px" />
-    <colorPicker v-model="color"></colorPicker>
-    <br />
-    <f-text>到：</f-text>
-    <Input v-model:value="color2" placeholder="颜色值" width="130px" />
-    <colorPicker v-model="color2"></colorPicker>
-    <br />
-    <f-text>卡片标题文本颜色：</f-text>
-    <Input v-model:value="color3" placeholder="颜色值" width="130px" />
-    <colorPicker v-model="color3"></colorPicker>
-    <br />
-    <f-text>卡片标题：</f-text>
-    <Input v-model:value="bttext" maxlength="50" showCount="true" placeholder="卡片标题" />
-    <Divider />
-    <f-text>启用按钮：</f-text>
-    <Switch v-model="openbotton" />
-    <div v-if="openbotton">
-      <f-text>按钮文本：</f-text>
-      <Input v-model:value="bottontext" maxlength="10" showCount="true" placeholder="按钮文本" />
-      <f-text>按钮链接：</f-text>
-      <Input v-model:value="bottonurl" maxlength="200" showCount="true" placeholder="按钮链接" />
-      <f-text>按钮颜色：</f-text>
-      <Input v-model:value="bottoncolor" placeholder="颜色值" width="130px" />
-      <colorPicker v-model="bottoncolor"></colorPicker>
-    </div>
-    <Divider />
+    <!-- <Alert message="提示：点击色块快速选择颜色" type="info" /> -->
+    <!-- 最上方和最右边留空隙 -->
+    <div style="padding-left: 10px; padding-right: 10px">
+      <f-text>卡片标题背景色从：</f-text>
+      <br />
+      <Space :width="150">
+        <ColorPicker v-model:value="color" />
+      </Space>
+      <br />
+      <f-text>到：</f-text>
+      <br />
+      <Space :width="150">
+        <ColorPicker v-model:value="color2" />
+      </Space>
+      <br />
+      <f-text>卡片标题文本颜色：</f-text>
+      <br />
+      <Space :width="150">
+        <ColorPicker v-model:value="color3" />
+      </Space>
+      <br />
+      <f-text>卡片标题：</f-text>
+      <Input v-model:value="bttext" maxlength="50" showCount="true" placeholder="卡片标题" />
+      <br />
+      <f-text>标题预览：</f-text>
+      <!-- 创建一个预览渐变色块，里面显示标题 -->
+      <br />
+      <div
+        :style="{
+          background: 'linear-gradient(to right, ' + color + ', ' + color2 + ')',
+          color: color3,
+          padding: '10px',
+          borderRadius: '5px',
+          marginTop: '10px',
+          width: '300px',
+        }"
+      >
+        {{ bttext }}
+      </div>
+
+      <Divider />
+      <f-text>启用按钮：</f-text>
+      <Switch v-model="openbotton" />
+      <div v-if="openbotton">
+        <f-text>按钮文本：</f-text>
+        <Input v-model:value="bottontext" maxlength="10" showCount="true" placeholder="按钮文本" />
+        <f-text>按钮链接：</f-text>
+        <Input v-model:value="bottonurl" maxlength="200" showCount="true" placeholder="按钮链接" />
+        <f-text>按钮颜色：</f-text>
+        <br />
+        <Space :width="150">
+          <ColorPicker v-model:value="bottoncolor" />
+        </Space>
+      </div>
+      <!-- <Divider />
     <f-text>启用图片：</f-text>
     <Switch v-model="img" />
 
     <div v-if="img">
       <f-text>图片链接：</f-text>
       <Input v-model:value.lazy="imgurl" maxlength="200" showCount="true" placeholder="图片链接" />
-    </div>
-    <Divider />
-    <f-text>卡片内容：</f-text>
-    <MdEditor v-model="text" :toolbars="toolbars" @onSave="onSave" />
-    <!-- <Textarea
+    </div> -->
+      <Divider />
+      <f-text>卡片内容：</f-text>
+      <MdEditor v-model="text" :toolbars="toolbars" noUploadImg @onSave="onSave" />
+      <!-- <Textarea
       v-model:value="text"
       placeholder="卡片内容，支持Markdown语法"
       showCount="true"
       maxlength="800"
     /> -->
 
-    <Button type="primary" @click="send = true">发送</Button>
-
+      <Button type="primary" @click="send = true">发送</Button>
+    </div>
     <f-dialog v-model:visible="send" title="发送到频道">
       <Spin :spinning="spinning" indicator="dynamic-circle">
         <f-text>服务器ID：</f-text>
@@ -214,15 +241,15 @@
           <Tag color="red" v-if="ginfo.black">黑名单服务器</Tag>
           <Tag color="cyan" v-if="ginfo.free">免费使用</Tag>
           <Select
-          :options="options"
-          width="75%"
-          placeholder="选择频道"
-          @change="change"
-          v-model="selectedValue"
-        />
-        <Button type="primary" @click="copycid" >复制</Button>
-        <br>
-        <text>频道ID:{{ selectedValue }} </text>
+            :options="options"
+            width="75%"
+            placeholder="选择频道"
+            @change="change"
+            v-model="selectedValue"
+          />
+          <Button type="primary" @click="copycid">复制</Button>
+          <br />
+          <text>频道ID:{{ selectedValue }} </text>
         </div>
 
         <Input v-model:value="gid" placeholder="服务器id" @enter="getgidInfo" width="75%" />
@@ -251,11 +278,12 @@ import {
   Tooltip,
   Result,
   Tag,
+  ColorPicker,
+  Space,
 } from 'vue-amazing-ui'
 
 import 'vue-amazing-ui/css'
 import { ref } from 'vue'
-import 'vcolorpicker/lib/style.css'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import type { ToolbarNames } from 'md-editor-v3'
@@ -311,6 +339,7 @@ const toolbars: ToolbarNames[] = [
   '-',
   'code',
   'link',
+  'image',
   '-',
   'revoke',
   'next',
@@ -337,7 +366,6 @@ const copycid = () => {
   navigator.clipboard.writeText(selectedValue.value)
   message.value?.success('复制成功')
 }
-
 
 const testButton = () => {
   testButtonSum.value++
@@ -399,8 +427,7 @@ fetch('/config.json')
   })
   .catch((error) => {
     console.error(error)
-})
-
+  })
 
 // if (location.hostname == 'localhost') {
 //   isdev.value = true
@@ -597,7 +624,6 @@ const usergettask = () => {
 const back1 = () => {
   p.value = 1
 }
-
 </script>
 
 <style scoped></style>

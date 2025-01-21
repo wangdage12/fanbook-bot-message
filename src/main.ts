@@ -1,6 +1,5 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import vColorPicker from 'vcolorpicker'
 import * as Sentry from '@sentry/vue'
 import FightingDesign from 'fighting-design'
 import 'fighting-design/dist/index.css'
@@ -24,5 +23,4 @@ Sentry.init({
 })
 
 app.use(FightingDesign)
-app.use(vColorPicker)
 app.mount('#app')
