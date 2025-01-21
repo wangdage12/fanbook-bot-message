@@ -3,6 +3,8 @@ fanbook bot消息平台
 
 fanbook bot消息平台是为了解决普通fanbook服务器无法使用消息推送功能而诞生，我写代码是业余水平，尤其是前端，也不想写多复杂，写的烂是正常现象，能用就行  
 
+使用教程：http://docs.fbwdg.dynv6.net/docs/%E6%B6%88%E6%81%AF%E5%B9%B3%E5%8F%B0%E6%95%99%E7%A8%8B.html  
+
 **本项目需要有发送消息白名单机器人，由于目前申请该项几乎不可能，建议没有白名单的服务器主使用现成的**  
 现成的：https://124.221.67.43/botmsg1/  
 使用现成的请先前往服务器取得机器人：https://in.fanbook.cn/LmgLJF3N  
