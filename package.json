@@ -18,9 +18,8 @@
     "@sentry/vue": "^8.39.0",
     "@vavt/v3-extension": "^1.3.2",
     "md-editor-v3": "^5.0.2",
-    "vcolorpicker": "^2.0.12",
     "vue": "^3.5.12",
-    "vue-amazing-ui": "^1.9.6",
+    "vue-amazing-ui": "^2.1.3",
     "vue-router": "^4.4.5"
   },
   "devDependencies": {
