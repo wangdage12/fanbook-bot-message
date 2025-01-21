@@ -18,6 +18,9 @@ import warnings
 import threading
 import sentry_sdk
 import ctypes
+
+import re
+
 logger.info("加载完成，开始初始化")
 
 sentry_sdk.init(
@@ -80,6 +83,27 @@ def Rjson(filename):
     with open(filename,'r',encoding='utf-8') as f:
         data=json.load(f)
     return data
+
+def process_markdown(text):
+    # 正则表达式匹配 Markdown 格式的图片
+    pattern = r'!\[.*?\]\((.*?)\)'
+    
+    # 找到所有匹配的图片链接
+    matches = re.finditer(pattern, text)
+    image_links = [match.group(1) for match in matches]
+    
+    # 使用正则表达式删除图片
+    modified_text = re.sub(pattern, '', text)
+    
+    # 根据删除后的图片位置分割文本
+    split_text = re.split(pattern, text)
+    
+    # 删除分割后的图片链接
+    for i in range(len(split_text)):
+        if split_text[i] in image_links:
+            split_text[i]='[图片]'
+    
+    return image_links, modified_text, split_text
 
 bottoken=Rjson('token.json')['token']
 
@@ -203,6 +227,7 @@ def SendMessageForAllUser(clid='',gid='',token='',text='',sl=0,yz=0,name='',Ttim
     except:
         print('token不正确')
 
+# SendMessageForAllUser(clid=433212507046281216,gid='433204455396081664',token='0f2de7ac66727cd9fcec1ee43559c561f6abf3f1e202c5a06c2ae4a3f6cf94ab795fbfbe39ad311a18ad1ff314388d1c',text='text',name=str(uuid.uuid1()))
 
 def get_err_msg(code):
     if code == 1021:
@@ -261,7 +286,12 @@ def send_message():
         logger.error(f'服务器{gid}没有密钥')
         return {'ok':False,'msg':'为了安全性，请点击下方加入服务器按钮，以获取密钥'}
     
+    image_links, modified_text, split_text = process_markdown(mdtext)
+    
+    imgindex=0
+    
     data={
+        "crossAxisAlignment": "stretch",
         "tag": "column",
         "children": [
             {
@@ -282,45 +312,51 @@ def send_message():
                 "backgroundColor": "ddeeff00"
             }
         ],
-        "crossAxisAlignment": "stretch"
     }
-    if openimg=='true':
-        data['children'].append({
-            "tag": "container",
-            "child": {
-                "tag": "column",
-                "padding": "12",
-                "children": [
-                    {
-                        "tag": "container",
+    for i in split_text:
+        if i=='[图片]':
+            img=image_links[imgindex]
+            imgindex+=1
+            # base64编码图片链接
+            img = base64.b64encode(img.encode('utf-8')).decode('utf-8')
+            data['children'].append({
+                "tag": "container",
+                "child": {
+                    "tag": "column",
+                    "padding": "12",
+                    "children": [
+                        {
+                            "tag": "container",
+                            "padding": "12",
+                            "child": {
+                                "tag": "image",
+                                "src":  "1::00::0::"+img,
+                            }
+                        }
+                    ]
+                },
+                "backgroundColor": "ffffff"
+            })
+        else:
+            data['children'].append({
+                    "tag": "container",
+                    "child": {
+                        "tag": "column",
+                        "crossAxisAlignment": "start",
                         "padding": "12",
-                        "child": {
-                            "tag": "image",
-                            "src":  "1::00::0::"+img,
-                        }
-                    }
-                ]
-            },
-            "backgroundColor": "ffffff"
-        })
-    data['children'].append({
-            "tag": "container",
-            "child": {
-                "tag": "column",
-                "padding": "12",
-                "children": [
-                    {
-                        "tag": "container",
-                        "padding": "0,8,0,0",
-                        "child": {
-                            "tag": "markdown",
-                            "data": mdtext
-                        }
-                    }
-                ]
-            },
-            "backgroundColor": "ffffff"
-        })
+                        "children": [
+                            {
+                                "tag": "container",
+                                "padding": "0,8,0,0",
+                                "child": {
+                                    "tag": "markdown",
+                                    "data": i
+                                }
+                            }
+                        ]
+                    },
+                    "backgroundColor": "ffffff"
+                })
     if openbutton=='true':
         data['children'].append({"tag":"container","padding":"12,0,12,12","child":{"tag":"button","category":"outlined","color":btcolor,"size":"medium","widthUnlimited":True,"href":burl,"label":botton}})
 
