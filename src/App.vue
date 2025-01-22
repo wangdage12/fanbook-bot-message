@@ -32,27 +32,33 @@
     <!-- <Alert message="提示：点击色块快速选择颜色" type="info" /> -->
     <!-- 最上方和最右边留空隙 -->
     <div style="padding-left: 10px; padding-right: 10px">
+      <div :style="{padding:'5px'}"></div>
+      <h3>标题设置</h3>
+      <div :style="{padding:'5px'}"></div>
       <f-text>卡片标题背景色从：</f-text>
       <br />
       <Space :width="150">
-        <ColorPicker v-model:value="color" />
+        <ColorPicker v-model:value="color" placement="bottom" :showAlpha=false />
       </Space>
       <br />
       <f-text>到：</f-text>
       <br />
       <Space :width="150">
-        <ColorPicker v-model:value="color2" />
+        <ColorPicker v-model:value="color2" :showAlpha=false />
       </Space>
       <br />
+      <div :style="{padding:'5px'}"></div>
       <f-text>卡片标题文本颜色：</f-text>
       <br />
       <Space :width="150">
-        <ColorPicker v-model:value="color3" />
+        <ColorPicker v-model:value="color3" :showAlpha=false />
       </Space>
       <br />
+      <div :style="{padding:'5px'}"></div>
       <f-text>卡片标题：</f-text>
       <Input v-model:value="bttext" maxlength="50" showCount="true" placeholder="卡片标题" />
       <br />
+      <div :style="{padding:'5px'}"></div>
       <f-text>标题预览：</f-text>
       <!-- 创建一个预览渐变色块，里面显示标题 -->
       <br />
@@ -70,17 +76,22 @@
       </div>
 
       <Divider />
+      <h3>按钮设置</h3>
+      <div :style="{padding:'5px'}"></div>
       <f-text>启用按钮：</f-text>
       <Switch v-model="openbotton" />
       <div v-if="openbotton">
+        <div :style="{padding:'5px'}"></div>
         <f-text>按钮文本：</f-text>
         <Input v-model:value="bottontext" maxlength="10" showCount="true" placeholder="按钮文本" />
+        <div :style="{padding:'5px'}"></div>
         <f-text>按钮链接：</f-text>
         <Input v-model:value="bottonurl" maxlength="200" showCount="true" placeholder="按钮链接" />
+        <div :style="{padding:'5px'}"></div>
         <f-text>按钮颜色：</f-text>
         <br />
         <Space :width="150">
-          <ColorPicker v-model:value="bottoncolor" />
+          <ColorPicker v-model:value="bottoncolor" :showAlpha=false />
         </Space>
       </div>
       <!-- <Divider />
@@ -92,7 +103,8 @@
       <Input v-model:value.lazy="imgurl" maxlength="200" showCount="true" placeholder="图片链接" />
     </div> -->
       <Divider />
-      <f-text>卡片内容：</f-text>
+      <h3>卡片内容</h3>
+      <div :style="{padding:'5px'}"></div>
       <MdEditor v-model="text" :toolbars="toolbars" noUploadImg @onSave="onSave" />
       <!-- <Textarea
       v-model:value="text"
@@ -103,7 +115,7 @@
 
       <Button type="primary" @click="send = true">发送</Button>
     </div>
-    <f-dialog v-model:visible="send" title="发送到频道">
+    <f-dialog v-model:visible="send" title="发送到频道" :on-open="getchannel">
       <Spin :spinning="spinning" indicator="dynamic-circle">
         <f-text>服务器ID：</f-text>
         <f-input v-model="gid" type="text" :on-blur="getchannel" placeholder="请输入服务器ID" />
@@ -148,7 +160,7 @@
     <Textarea v-model:value.lazy="textmsg" />
     <Button type="primary" @click="send = true">发送</Button>
 
-    <f-dialog v-model:visible="send" title="发送到频道">
+    <f-dialog v-model:visible="send" title="发送到频道" :on-open="getchannel">
       <Spin :spinning="spinning" indicator="dynamic-circle">
         <f-text>服务器ID：</f-text>
         <f-input v-model="gid" type="text" :on-blur="getchannel" placeholder="请输入服务器ID" />
@@ -484,12 +496,6 @@ const getchannel = () => {
     })
 }
 
-// 本地存储读取gid
-const gidlocal = localStorage.getItem('gid')
-if (gidlocal) {
-  gid.value = gidlocal
-  getchannel()
-}
 
 const sendmsg = () => {
   sdloading.value = true
@@ -623,6 +629,14 @@ const usergettask = () => {
 
 const back1 = () => {
   p.value = 1
+}
+
+
+// 本地存储读取gid
+const gidlocal = localStorage.getItem('gid')
+if (gidlocal) {
+  gid.value = gidlocal
+  // getchannel()
 }
 </script>
 
