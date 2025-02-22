@@ -21,6 +21,7 @@ import ctypes
 
 import re
 
+
 logger.info("加载完成，开始初始化")
 
 sentry_sdk.init(
@@ -83,6 +84,11 @@ def Rjson(filename):
     with open(filename,'r',encoding='utf-8') as f:
         data=json.load(f)
     return data
+
+def is_valid_filename(name):
+    if len(name) != 36:
+        return False
+    return re.fullmatch(r'[\w\-]+', name) is not None
 
 def process_markdown(text):
     # 正则表达式匹配 Markdown 格式的图片
@@ -463,6 +469,9 @@ def sendtext():
 def getTask():
     try:
         name=flask.request.args.get('pid')
+        # 验证任务ID是否合法，防止路径遍历攻击，并且满足：只符合uuid4长度、不允许含有data、token
+        if not is_valid_filename(name):
+            return {'ok': False, 'msg': '非法的任务ID'}
         d=Rjson(name+'.json')
         logger.info(f'获取任务{name}成功')
         return d
