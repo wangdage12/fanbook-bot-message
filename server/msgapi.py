@@ -2,7 +2,6 @@ import logging
 import coloredlogs
 # 创建日志记录器
 logger = logging.getLogger(__name__)
-
 # 配置 coloredlogs
 coloredlogs.install(level='DEBUG', logger=logger)
 logger.info("开始加载库")
@@ -18,7 +17,6 @@ import warnings
 import threading
 import sentry_sdk
 import ctypes
-
 import re
 
 
@@ -268,29 +266,34 @@ def send_message():
     ttype=flask.request.args.get('type')# 是否推送到频道的所有用户
     
     key=flask.request.args.get('key')
+    
+    # getjson参数是不发送请求,用于在前端中获取构建好的卡片数据
+    getjson=flask.request.args.get('getjson')
+
     taskid=str(uuid.uuid1())
     Ttime=time.time()
     # 格式化时间
     Ttime=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(Ttime))
-    is_black=Rjson('data.json')
-    is_black=is_black['black_list']
-    if gid in is_black:
-        logger.error(f'服务器{gid}因违规已被拉黑')
-        return {'ok':False,'msg':'该服务器因为违规已被拉黑'}
-    
-    keys=Rjson('data.json')
-    keys=keys['keys']
-    print(key)
-    key.replace(" ","")
-    gid.replace(" ","")
-    print(gid,']')
-    try:
-        if keys[gid]!=key:
-            logger.error(f'服务器{gid}密钥错误')
-            return {'ok':False,'msg':'服务器安全密钥错误'}
-    except:
-        logger.error(f'服务器{gid}没有密钥')
-        return {'ok':False,'msg':'为了安全性，请点击下方加入服务器按钮，以获取密钥'}
+    if getjson!='true':
+        is_black=Rjson('data.json')
+        is_black=is_black['black_list']
+        if gid in is_black:
+            logger.error(f'服务器{gid}因违规已被拉黑')
+            return {'ok':False,'msg':'该服务器因为违规已被拉黑'}
+        
+        keys=Rjson('data.json')
+        keys=keys['keys']
+        print(key)
+        key.replace(" ","")
+        gid.replace(" ","")
+        print(gid,']')
+        try:
+            if keys[gid]!=key:
+                logger.error(f'服务器{gid}密钥错误')
+                return {'ok':False,'msg':'服务器安全密钥错误'}
+        except:
+            logger.error(f'服务器{gid}没有密钥')
+            return {'ok':False,'msg':'为了安全性，请点击下方加入服务器按钮，以获取密钥'}
     
     image_links, modified_text, split_text = process_markdown(mdtext)
     
@@ -365,7 +368,8 @@ def send_message():
                 })
     if openbutton=='true':
         data['children'].append({"tag":"container","padding":"12,0,12,12","child":{"tag":"button","category":"outlined","color":btcolor,"size":"medium","widthUnlimited":True,"href":burl,"label":botton}})
-
+    if getjson=='true':
+        return data
     if ttype=='true':
         # 创建线程
         ginfo=get_guild(token=bottoken,guid=str(gid),userid='1')
@@ -402,7 +406,7 @@ def send_message():
     
 @app.route('/sendtext', methods=['get'])
 def sendtext():
-    global ids,roks,errs,texttypes
+    # global ids,roks,errs,texttypes
     cid = flask.request.args.get('cid')
     text = flask.request.args.get('text')
     ttype=flask.request.args.get('type')
@@ -454,6 +458,142 @@ def sendtext():
     else:
         logger.info(f'服务器{gid}发送消息到频道{cid}')
         r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='text',text=text).text
+        data=json.loads(r)
+        if data['ok']==True:
+            return data
+        else:
+            logger.warning(f'服务器{gid}发送消息到频道{cid}失败，错误码{data["error_code"]}')
+            try:
+                data['msg']=get_err_msg(data['error_code'])
+            except:
+                data['msg']='未知错误'
+            return data
+
+@app.route('/sendRichText', methods=['get'])
+def sendRichText():
+    # global ids,roks,errs,texttypes
+    cid = flask.request.args.get('cid')
+    text = flask.request.args.get('text')
+    ttype=flask.request.args.get('type')
+    gid=flask.request.args.get('gid')
+    key=flask.request.args.get('key')
+    bt= flask.request.args.get('bt')
+    taskid=str(uuid.uuid1())
+    Ttime=time.time()
+    # 格式化时间
+    Ttime=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(Ttime))
+    is_black=Rjson('data.json')
+    is_black=is_black['black_list']
+    if gid in is_black:
+        logger.info(f'服务器{gid}发送消息到频道{cid}，但该服务器因为违规已被拉黑')
+        return {'ok':False,'msg':'该服务器因为违规已被拉黑'}
+    
+    keys=Rjson('data.json')
+    keys=keys['keys']
+    key.replace(" ","")
+    gid.replace(" ","")
+    print(gid,']')
+    try:
+        if keys[gid]!=key:
+            logger.info(f'服务器{gid}发送消息到频道{cid}，但密钥错误')
+            return {'ok':False,'msg':'服务器安全密钥错误'}
+    except:
+        logger.info(f'服务器{gid}发送消息到频道{cid}，无密钥')
+        return {'ok':False,'msg':'为了安全性，请点击下方加入服务器按钮，以获取密钥'}
+    
+    if ttype=='true':
+        # SendMessageForAllUser(clid=int(cid),gid=gid,token=bottoken,text='text',name=taskid)
+        # 创建线程
+        ginfo=get_guild(token=bottoken,guid=str(gid),userid='1')
+        gname=ginfo['result']['name']
+        white_list=Rjson('data.json')
+        white_list=white_list['white_list']
+        logger.info(f'服务器{gid}({gname})发送批量消息到{cid}')
+        delta=json.loads(text)
+        if gid not in white_list:
+            delta.append({
+    "insert": "\n"
+  })
+            delta.append({
+    "attributes": {
+      "color": "#00afee"
+    },
+    "insert": "消息来自："+gname+"\n"
+  })        
+            delta.append({
+    "attributes": {
+      "color": "#00afee"
+    },
+    "insert": "不是由官方发送，请注意辨别"
+  })
+            delta.append({
+    "insert": "\n"
+  })
+        else:
+            delta.append({
+    "insert": "\n"
+  })
+            delta.append({
+    "attributes": {
+      "color": "#00afee"
+    },
+    "insert": "消息来自："+gname+"\n"
+  })
+            delta.append({
+    "attributes": {
+      "color": "#00afee"
+    },
+    "insert": "为可信服务器的消息"
+  })
+            delta.append({
+    "insert": "\n"
+  })
+        # 遍历delta中的每个元素，检查是否有图片，如果insert中有image，将image字段名改为source
+        for i in delta:
+            if 'insert' in i and isinstance(i['insert'], dict) and 'image' in i['insert']:
+                i['insert']['source'] = i['insert'].pop('image')
+                i['insert']["_type"]= 'image'
+                # i["width"]= 279.0
+                # i["height"]= 130.0
+                i['insert']["_inline"]= False
+        print(delta)
+        # 目前有一个bug，图片在pc端上非常小，web端上非常大，目前不清楚原因
+        msg={
+            "type": "richText",
+            "title": bt,
+            # "document": json.dumps(delta),# 这个是富文本去掉所有样式的数组，但是直接传普通的富文本似乎也可以
+            "v2":json.dumps(delta),# 这个是富文本的Quill v2版本，包含所有样式，不传这个只传上面的document会导致富文本样式丢失
+            "v":2# 这个是富文本的版本号，必须为2
+        }
+        t = threading.Thread(target=SendMessageForAllUser, args=(int(cid),gid,bottoken,json.dumps(msg),0,0,taskid,Ttime))
+        ids.append(taskid)
+        roks.append(0)
+        errs.append(0)
+        texttypes.append('text')
+        # 启动线程
+        t.start()
+        return {'ok':True,'taskid':taskid}
+    else:
+        logger.info(f'服务器{gid}发送消息到频道{cid}')
+        delta=json.loads(text)
+        # 遍历delta中的每个元素，检查是否有图片，如果insert中有image，将image字段名改为source
+        for i in delta:
+            if 'insert' in i and isinstance(i['insert'], dict) and 'image' in i['insert']:
+                i['insert']['source'] = i['insert'].pop('image')
+                i['insert']["_type"]= 'image'
+                # i["width"]= 279.0
+                # i["height"]= 130.0
+                i['insert']["_inline"]= False
+        print(delta)
+        # 目前有一个bug，图片在pc端上非常小，web端上非常大，目前不清楚原因
+        msg={
+            "type": "richText",
+            "title": bt,
+            # "document": json.dumps(delta),# 这个是富文本去掉所有样式的数组，但是直接传普通的富文本似乎也可以
+            "v2":json.dumps(delta),# 这个是富文本的Quill v2版本，包含所有样式，不传这个只传上面的document会导致富文本样式丢失
+            "v":2# 这个是富文本的版本号，必须为2
+        }
+        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='fanbook',text=json.dumps(msg)).text
         data=json.loads(r)
         if data['ok']==True:
             return data
