@@ -125,7 +125,7 @@ def get_members(token='',tabs=[{"start":0, "end":99}],guid='',chlid='',userid=''
     return json.loads(r.text)
 
 def sendMessage(token='',chlid='',text='',sl=0,yz=0,name=''):
-    global roks,errs,texttypes,ids
+    # global roks,errs,texttypes,ids
     rok=roks[ids.index(name)]
     err=errs[ids.index(name)]
     texttype=texttypes[ids.index(name)]
@@ -173,7 +173,7 @@ def get_guild(token='',guid='',userid=''):#获取服务器信息
 
 
 def SendMessageForAllUser(clid='',gid='',token='',text='',sl=0,yz=0,name='',Ttime=''):
-    global roks,errs,texttypes,ids
+    # global roks,errs,texttypes,ids
     err=errs[ids.index(name)]
     texttype=texttypes[ids.index(name)]
     
