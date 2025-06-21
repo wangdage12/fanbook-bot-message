@@ -109,6 +109,14 @@ def process_markdown(text):
     
     return image_links, modified_text, split_text
 
+# 验证颜色是否符合要求
+def is_valid_color(color):
+    # 检查颜色是否为6位十六进制数
+    if re.fullmatch(r'#[0-9a-fA-F]{6}', color):
+        return True
+    else:
+        return False
+
 bottoken=Rjson('token.json')['token']
 
 def get_members(token='',tabs=[{"start":0, "end":99}],guid='',chlid='',userid='',name=''):#获取成员列表
@@ -140,20 +148,19 @@ def sendMessage(token='',chlid='',text='',sl=0,yz=0,name=''):
         if da["ok"]==True:
             pass
         else:
-            print(f'发送第{str(sl+1)}条消息失败，获取私信频道失败')
+            logger.error(f'发送第{str(sl+1)}条消息失败，获取私信频道失败')
+            logger.error(f'错误信息：{da}')
             errs[ids.index(name)]+=1
-            print(da)
             return da
     chlid=da["result"]["id"]
     try:
         r=fanbookbotapi.sendmessage(token=token,chatid=int(chlid),type=texttype,text=text)
         da=json.loads(r.text)
         if da["ok"]==True:
-            print(f'发送第{str(sl+1)}条消息成功')
+            logger.info(f'发送第{str(sl+1)}条消息成功')
             roks[ids.index(name)]+=1
         else:
-            print(f'发送第{str(sl+1)}条消息失败')
-            print(da)
+            logger.error(f'发送第{str(sl+1)}条消息失败 {da}')
             errs[ids.index(name)]+=1
         return json.loads(r.text)
     except:
@@ -189,7 +196,7 @@ def SendMessageForAllUser(clid='',gid='',token='',text='',sl=0,yz=0,name='',Ttim
 
     try:
         if True:# if qx["ok"]==true or qx["ok"]==True:
-            print('验证成功，机器人有权限发送消息')
+            logger.info('验证成功，机器人有权限发送消息')
             roks[ids.index(name)]-=1
             try:
                 try:
@@ -204,10 +211,10 @@ def SendMessageForAllUser(clid='',gid='',token='',text='',sl=0,yz=0,name='',Ttim
                             datatype=list(datatype)
                             if datatype[0]=='User':
                                 userids.append(x['User']['user_id'])
-                        print(f'已获取{str(len(userids))}个成员')
+                        logger.info(f'获取成员列表成功，已获取{str(len(userids))}个成员')
                         Wjson(filename=name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)],"msg":"正在获取成员列表","time":Ttime,"time_remaining":str(len(userids)*0.25)})
                         if len(rangesdata)<99:
-                            print('获取完成')
+                            logger.info(f'获取成员列表完成，共获取{str(len(userids))}个成员')
                             notend=False
                             Wjson(filename=name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)],"msg":"获取完成，即将发送消息","time":Ttime,"time_remaining":str(len(userids)*0.25)})
                             #print(userids)
@@ -219,17 +226,17 @@ def SendMessageForAllUser(clid='',gid='',token='',text='',sl=0,yz=0,name='',Ttim
                         Wjson(filename=name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)]+1,"msg":"正在发送消息","time":Ttime,"time_remaining":str((len(userids)-sl)*0.25)})
                         
                     time.sleep(1)
-                    print(f'发送完成，成功{str(roks[ids.index(name)]+1)}次，失败{str(errs[ids.index(name)])}次')
+                    logger.info(f'发送完成，成功{str(roks[ids.index(name)]+1)}次，失败{str(errs[ids.index(name)])}次')
                     Wjson(filename=name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)]+1,"msg":"发送完成","time":Ttime,"endtime":time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),"time_remaining":'0'})
                 except:
-                    print('获取成员数量失败，你应该检查机器人id和频道id')
+                    logger.error('获取成员数量失败，你应该检查机器人id和频道id')
                     print(cylb)
             except:
-                print('获取成员数量失败，你应该检查服务器id')
+                logger.error('获取成员数量失败，你应该检查服务器id')
         else:
-            print('机器人没有权限发送消息或没有发送消息白名单')
+            logger.error('机器人没有权限发送消息或没有发送消息白名单')
     except:
-        print('token不正确')
+        logger.error('token不正确')
 
 # SendMessageForAllUser(clid=433212507046281216,gid='433204455396081664',token='0f2de7ac66727cd9fcec1ee43559c561f6abf3f1e202c5a06c2ae4a3f6cf94ab795fbfbe39ad311a18ad1ff314388d1c',text='text',name=str(uuid.uuid1()))
 
@@ -272,6 +279,21 @@ def send_message():
 
     taskid=str(uuid.uuid1())
     Ttime=time.time()
+    
+    # 验证颜色是否符合要求
+    if not is_valid_color(color[0]):
+        # 默认颜色
+        color[0] = "#00AFEE"
+    if not is_valid_color(color[1]):
+        # 默认颜色
+        color[1] = "#F2F2F2"
+    if not is_valid_color(textcolor):
+        # 默认颜色
+        textcolor = "#F2F2F2"
+    if not is_valid_color(btcolor):
+        # 默认颜色
+        btcolor = "#00AFEE"
+    
     # 格式化时间
     Ttime=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(Ttime))
     if getjson!='true':
@@ -283,10 +305,11 @@ def send_message():
         
         keys=Rjson('data.json')
         keys=keys['keys']
-        print(key)
+        # print(key)
         key.replace(" ","")
         gid.replace(" ","")
-        print(gid,']')
+        # print(gid,']')
+        logger.info(f'服务器{gid}发送卡片消息到频道{cid}，密钥为{key}')
         try:
             if keys[gid]!=key:
                 logger.error(f'服务器{gid}密钥错误')
@@ -426,7 +449,8 @@ def sendtext():
     keys=keys['keys']
     key.replace(" ","")
     gid.replace(" ","")
-    print(gid,']')
+    # print(gid,']')
+    logger.info(f'服务器{gid}发送消息到频道{cid}，密钥为{key}')
     try:
         if keys[gid]!=key:
             logger.info(f'服务器{gid}发送消息到频道{cid}，但密钥错误')
@@ -508,7 +532,7 @@ def sendRichText():
         gname=ginfo['result']['name']
         white_list=Rjson('data.json')
         white_list=white_list['white_list']
-        logger.info(f'服务器{gid}({gname})发送批量消息到{cid}')
+        logger.info(f'服务器{gid}({gname})发送批量富文本消息到{cid}')
         delta=json.loads(text)
         if gid not in white_list:
             delta.append({
@@ -556,7 +580,8 @@ def sendRichText():
                 # i["width"]= 279.0
                 # i["height"]= 130.0
                 i['insert']["_inline"]= False
-        print(delta)
+        # print(delta)
+        logger.debug(f'富文本json：{delta}')
         # 目前有一个bug，图片在pc端上非常小，web端上非常大，目前不清楚原因
         msg={
             "type": "richText",
@@ -574,7 +599,7 @@ def sendRichText():
         t.start()
         return {'ok':True,'taskid':taskid}
     else:
-        logger.info(f'服务器{gid}发送消息到频道{cid}')
+        logger.info(f'服务器{gid}发送富文本消息到频道{cid}')
         delta=json.loads(text)
         # 遍历delta中的每个元素，检查是否有图片，如果insert中有image，将image字段名改为source
         for i in delta:
@@ -584,7 +609,8 @@ def sendRichText():
                 # i["width"]= 279.0
                 # i["height"]= 130.0
                 i['insert']["_inline"]= False
-        print(delta)
+        # print(delta)
+        logger.debug(f'富文本json：{delta}')
         # 目前有一个bug，图片在pc端上非常小，web端上非常大，目前不清楚原因
         msg={
             "type": "richText",
@@ -665,14 +691,15 @@ def info():
         headers={'Content-Type': 'application/json'}
         body=json.dumps({'guild_id':gid,'user_id':'0'})
         response = requests.post(url, headers=headers, data=body)
-        print(response.text)
+        # print(response.text)
+        logger.info(response.text)
         d=json.loads(response.text)
         gname=d['result']['name']
         logger.info(f'服务器{gid}({gname})获取基本信息成功')
         return {'ok':True,'white':white,'black':black,'free':free,'msg':'获取基本信息成功','data':d,'gname':gname}
     except Exception as e:
-        print(e)
-        logger.info(f'服务器{gid}获取基本信息失败')
+        # print(e)
+        logger.info(f'服务器{gid}获取基本信息失败'+ str(e))
         return {'ok':False,'white':False,'black':False,'msg':'获取基本信息失败'}
 
     

@@ -522,14 +522,14 @@ const editorOptions = {
 };
 
 const p = ref(1);
-const color = ref("#00afee");
-const color2 = ref("#f2f2f2");
-const color3 = ref("#f2f2f2");
+const color = ref("#00AFEE");
+const color2 = ref("#F2F2F2");
+const color3 = ref("#F2F2F2");
 const bttext = ref("标题");
 const openbotton = ref(true);
 const bottontext = ref("按钮");
 const bottonurl = ref("https://in.fanbook.cn/LmgLJF3N");
-const bottoncolor = ref("#00afee");
+const bottoncolor = ref("#00AFEE");
 const img = ref(true);
 const imgurl = ref("");
 const text = ref("");
