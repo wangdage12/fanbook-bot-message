@@ -1,1 +1,1 @@
-declare module 'vue-amazing-ui'
+declare module "vue-amazing-ui";
