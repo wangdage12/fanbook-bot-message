@@ -11,7 +11,7 @@ const app = createApp(App);
 app.component("QuillEditor", QuillEditor);
 app.use(MonacoPlugin, {
   paths: {
-    vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs",
+    vs: "https://cdn.bootcdn.net/ajax/libs/monaco-editor/0.52.0-rc2/min/vs",
   },
 });
 
