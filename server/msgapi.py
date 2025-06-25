@@ -533,7 +533,11 @@ def sendRichText():
         white_list=Rjson('data.json')
         white_list=white_list['white_list']
         logger.info(f'服务器{gid}({gname})发送批量富文本消息到{cid}')
-        delta=json.loads(text)
+        try:
+            delta=json.loads(text)
+        except json.JSONDecodeError:
+            logger.error(f'服务器{gid}发送富文本消息到频道{cid}失败，富文本格式错误')
+            return {'ok':False,'msg':'富文本格式错误，请检查富文本格式'}
         if gid not in white_list:
             delta.append({
     "insert": "\n"
