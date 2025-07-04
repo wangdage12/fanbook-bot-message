@@ -3,42 +3,58 @@
   <div v-if="p == 1">
     <f-page-header :on-back="testButton" title="bot工具" />
     <Alert
-      message="请不要滥用这些功能，更不要使用发送消息功能骚扰他人和违规使用，服务器主请保管好安全密钥，以免造成不必要的麻烦。"
+      message="请不要滥用这些功能，更不要使用发送消息功能骚扰他人和违规使用，服务器主请保管好安全密钥，以免造成不必要的麻烦。如果你有任何想法或者建议，欢迎前往服务器反馈"
       type="info"
-    />
-    <div v-if="opendebug">
-      <Alert message="已开启调试模式" type="warning">
-        <template #actions>
-          <Button size="small" type="text" @click="closeDebug">关闭调试模式</Button>
-        </template>
-      </Alert>
-    </div>
-    <Alert
-      message="提示"
-      description="如果你有任何想法或者建议，欢迎前往反馈"
-      type="info"
-      closable
     >
       <template #actions>
         <Space vertical gap="small" align="center">
-          <Button size="small" type="primary" @click="openurl">前往反馈</Button>
+          <Button size="small" type="primary" @click="openurl"
+            >加入服务器</Button
+          >
         </Space>
       </template>
     </Alert>
-    <Card hoverable title="消息推送工具" :width="300">
-      <Button type="primary" @click="p = 3">发送文本消息</Button>
-      <br />
-      <br />
-      <Button type="primary" @click="p = 2">发送消息卡片</Button>
-      <br />
-      <br />
-      <Button type="primary" @click="p = 5">发送富文本</Button>
-      <br />
-      <!-- task为空就不显示 -->
-      <div v-if="taskid.length != 0">
-        <br />
-        <Button type="primary" @click="usergettask">查看批量进程</Button>
-      </div>
+    <div v-if="opendebug">
+      <Alert message="已开启调试模式" type="warning">
+        <template #actions>
+          <Button size="small" type="text" @click="closeDebug"
+            >关闭调试模式</Button
+          >
+        </template>
+      </Alert>
+    </div>
+    <!-- 和上面要有间隔 -->
+    <div :style="{ padding: '5px' }"></div>
+    <Card hoverable title="消息推送工具">
+      <Flex wrap="wrap" style="width: 100%; max-width: 650px">
+        <Button type="primary" @click="p = 3" ghost>
+          <template #icon>
+            <SendHorizontal :size="23" :style="{ fill: 'none' }" />
+          </template>
+          发送文本消息
+        </Button>
+        <Button type="primary" @click="p = 2" ghost>
+          <template #icon>
+            <MessageSquareCode :size="23" :style="{ fill: 'none' }" />
+          </template>
+          发送消息卡片
+        </Button>
+        <Button type="primary" @click="p = 5" ghost>
+          <template #icon>
+            <LetterText :size="23" :style="{ fill: 'none' }" />
+          </template>
+          发送富文本
+        </Button>
+        <!-- task为空就不显示 -->
+        <div v-if="taskid.length != 0">
+          <Button type="primary" @click="usergettask" ghost>
+            <template #icon>
+              <Logs :size="23" :style="{ fill: 'none' }" />
+            </template>
+            查看批量进程
+          </Button>
+        </div>
+      </Flex>
     </Card>
   </div>
   <div v-if="p == 2">
@@ -49,7 +65,7 @@
     <div style="padding-left: 10px; padding-right: 10px">
       <div :style="{ padding: '5px' }"></div>
       <h3>标题设置</h3>
-            <Input
+      <Input
         v-model:value="bttext"
         maxlength="50"
         showCount="true"
@@ -121,7 +137,7 @@
           maxlength="200"
           showCount="true"
           placeholder="按钮链接"
-          addonBefore="按钮链接"  
+          addonBefore="按钮链接"
         />
         <div :style="{ padding: '5px' }"></div>
         <f-text>按钮颜色：</f-text>
@@ -153,56 +169,27 @@
       showCount="true"
       maxlength="800"
     /> -->
-    <!-- debug模式才显示 -->
+      <!-- debug模式才显示 -->
       <div v-if="opendebug">
-      <vue-monaco-editor
-        v-model:value="cardjson"
-        language="json"
-        theme="vs-dark"
-        :options="{ automaticLayout: true }"
-        style="height: 400px; margin-top: 20px"
-
-      /></div>
+        <vue-monaco-editor
+          v-model:value="cardjson"
+          language="json"
+          theme="vs-dark"
+          :options="{ automaticLayout: true }"
+          style="height: 400px; margin-top: 20px"
+        />
+      </div>
       <Button type="primary" @click="send = true">发送</Button>
     </div>
-    <f-dialog v-model:visible="send" title="发送到频道" :on-open="getchannel">
-      <Spin :spinning="spinning" indicator="dynamic-circle">
-        <f-text>服务器ID：</f-text>
-        <f-input
-          v-model="gid"
-          type="text"
-          :on-blur="getchannel"
-          placeholder="请输入服务器ID"
-        />
-        <Select
-          :options="options"
-          width="200px"
-          placeholder="选择频道"
-          @change="change"
-          v-model="selectedValue"
-        />
-      </Spin>
-      <Tooltip tooltip="为了安全所生成的密钥，若没有请服务器主找开发者获取">
-        <Input
-          v-model:value="key"
-          password
-          placeholder="请输入服务器安全密钥"
-          addonBefore="服务器安全密钥"
-        />
-      </Tooltip>
-      <br />
-      <f-text>推送到频道中所有成员的私信：</f-text>
-      <Switch v-model="sendall" />
-      <template #footer>
-        <f-button
-          type="primary"
-          :on-click="sendmsg"
-          :disabled="disabled"
-          :loading="sdloading"
-          >发送到频道</f-button
-        >
-      </template>
-    </f-dialog>
+    <SendToChannel
+      v-model:visible="send"
+      :options="options"
+      :spinning="spinning"
+      :loading="sdloading"
+      :onOpen="getchannel"
+      :gid="gid"
+      @send="sendmsg"
+    />
     <div v-if="notKey">
       <Result
         status="error"
@@ -223,44 +210,15 @@
     <Textarea v-model:value.lazy="textmsg" />
     <Button type="primary" @click="send = true">发送</Button>
 
-    <f-dialog v-model:visible="send" title="发送到频道" :on-open="getchannel">
-      <Spin :spinning="spinning" indicator="dynamic-circle">
-        <f-text>服务器ID：</f-text>
-        <f-input
-          v-model="gid"
-          type="text"
-          :on-blur="getchannel"
-          placeholder="请输入服务器ID"
-        />
-        <Select
-          :options="options"
-          width="200px"
-          placeholder="选择频道"
-          @change="change"
-          v-model="selectedValue"
-        />
-      </Spin>
-      <Tooltip tooltip="为了安全所生成的密钥，若没有请服务器主找开发者获取">
-        <Input
-          v-model:value="key"
-          password
-          placeholder="请输入服务器安全密钥"
-          addonBefore="服务器安全密钥"
-        />
-      </Tooltip>
-      <br />
-      <f-text>推送到频道中所有成员的私信：</f-text>
-      <Switch v-model="sendall" />
-      <template #footer>
-        <f-button
-          type="primary"
-          :on-click="sendtext"
-          :disabled="disabled"
-          :loading="sdloading"
-          >发送到频道</f-button
-        >
-      </template>
-    </f-dialog>
+    <SendToChannel
+      v-model:visible="send"
+      :options="options"
+      :spinning="spinning"
+      :loading="sdloading"
+      :onOpen="getchannel"
+      :gid="gid"
+      @send="sendtext"
+    />
     <div v-if="notKey">
       <Result
         status="error"
@@ -359,13 +317,13 @@
         <Button type="primary" @click="getgidInfo">获取</Button>
       </Card>
       <Card hoverable title="debug" :width="300">
-      <Input
-            v-model:value="apiuri"
-            placeholder="api地址"
-            addonBefore="API地址"
-          />
-          <f-text>debug：</f-text>
-      <Switch v-model="opendebug" @change="handleDebugChange"/>
+        <Input
+          v-model:value="apiuri"
+          placeholder="api地址"
+          addonBefore="API地址"
+        />
+        <f-text>debug：</f-text>
+        <Switch v-model="opendebug" @change="handleDebugChange" />
       </Card>
     </div>
   </div>
@@ -396,22 +354,21 @@
         readonly
       ></textarea> -->
       <!-- 编辑器更新时触发事件 -->
-       <!-- debug下才显示json编辑器 -->
-        <div v-if="opendebug">
-      <vue-monaco-editor
-        v-model:value="deltaContent"
-        language="json"
-        theme="vs-dark"
-        :options="{ automaticLayout: true }"
-        style="height: 400px; margin-top: 20px"
-        :onChange="VSonEditorUpdate"
-
-      />
-        </div>
+      <!-- debug下才显示json编辑器 -->
+      <div v-if="opendebug">
+        <vue-monaco-editor
+          v-model:value="deltaContent"
+          language="json"
+          theme="vs-dark"
+          :options="{ automaticLayout: true }"
+          style="height: 400px; margin-top: 20px"
+          :onChange="VSonEditorUpdate"
+        />
+      </div>
 
       <Button type="primary" @click="send = true">发送</Button>
 
-      <f-dialog v-model:visible="send" title="发送到频道" :on-open="getchannel">
+      <!-- <f-dialog v-model:visible="send" title="发送到频道" :on-open="getchannel">
         <Spin :spinning="spinning" indicator="dynamic-circle">
           <f-text>服务器ID：</f-text>
           <f-input
@@ -448,7 +405,16 @@
             >发送到频道</f-button
           >
         </template>
-      </f-dialog>
+      </f-dialog> -->
+      <SendToChannel
+        v-model:visible="send"
+        :options="options"
+        :spinning="spinning"
+        :loading="sdloading"
+        :onOpen="getchannel"
+        :gid="gid"
+        @send="sendRichText"
+      />
     </div>
   </div>
 </template>
@@ -463,17 +429,16 @@ import {
   Textarea,
   Divider,
   Select,
-  Spin,
   Message,
   Descriptions,
   DescriptionsItem,
   Badge,
   Progress,
-  Tooltip,
   Result,
   Tag,
   ColorPicker,
   Space,
+  Flex,
 } from "vue-amazing-ui";
 
 import "vue-amazing-ui/css";
@@ -482,7 +447,14 @@ import { MdEditor } from "md-editor-v3";
 import "md-editor-v3/lib/style.css";
 import type { ToolbarNames } from "md-editor-v3";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
-import eruda from 'eruda'
+import eruda from "eruda";
+import {
+  SendHorizontal,
+  MessageSquareCode,
+  LetterText,
+  Logs,
+} from "lucide-vue-next";
+import SendToChannel from "@/components/SendToChannel.vue";
 
 // 自定义 image handler
 function imageHandler(this: any) {
@@ -501,18 +473,18 @@ const editorOptions = {
   modules: {
     toolbar: {
       container: [
-      [{ header: [1, 2, 3, false] }],
-      [{ size: ['small', false, 'large', 'huge'] }],    // 字号
-      ['bold', 'italic', 'underline', 'strike'],        // 粗体，斜体，下划线，删除线
-      [{ list: 'ordered' }, { list: 'bullet' }],        // 有序/无序列表
-      [{ indent: '-1' }, { indent: '+1' }],             // 缩进
-      [{ direction: 'rtl' }],                           // 文字方向
-      [{ color: [] }, { background: [] }],              // 文字颜色、背景颜色
-      [{ align: [] }],                                  // 对齐方式
-      ['blockquote', 'code-block'],                     // 引用、代码块
-      ['link', 'image'],                                // 插入链接、图片
-      ['clean'],                                        // 清除格式
-    ],
+        [{ header: [1, 2, 3, false] }],
+        [{ size: ["small", false, "large", "huge"] }], // 字号
+        ["bold", "italic", "underline", "strike"], // 粗体，斜体，下划线，删除线
+        [{ list: "ordered" }, { list: "bullet" }], // 有序/无序列表
+        [{ indent: "-1" }, { indent: "+1" }], // 缩进
+        [{ direction: "rtl" }], // 文字方向
+        [{ color: [] }, { background: [] }], // 文字颜色、背景颜色
+        [{ align: [] }], // 对齐方式
+        ["blockquote", "code-block"], // 引用、代码块
+        ["link", "image"], // 插入链接、图片
+        ["clean"], // 清除格式
+      ],
       handlers: {
         // 覆盖 image 按钮的默认行为
         image: imageHandler,
@@ -594,9 +566,9 @@ const handleDebugChange = (value: boolean) => {
   localStorage.setItem("debug", String(value));
   message.value?.success("保存成功");
   if (opendebug.value) {
-   eruda.init()
-  console.log("调试模式已开启");
-}else {
+    eruda.init();
+    console.log("调试模式已开启");
+  } else {
     eruda.destroy();
     console.log("调试模式已关闭");
   }
@@ -606,11 +578,10 @@ const handleDebugChange = (value: boolean) => {
 const debugLocal = localStorage.getItem("debug");
 if (debugLocal) {
   opendebug.value = debugLocal === "true";
-
 }
 // 如果开启了调试模式，则初始化 eruda
 if (opendebug.value) {
-   eruda.init()
+  eruda.init();
   console.log("调试模式已开启");
 }
 // 关闭调试模式
@@ -636,7 +607,6 @@ const VSonEditorUpdate = (value: string) => {
     console.warn("无效的 JSON 格式");
   }
 };
-
 
 const ginfo = ref();
 const key = ref("");
@@ -793,11 +763,16 @@ const getCardJson = () => {
     });
 };
 
-const sendmsg = () => {
+const sendmsg = (payload: {
+  gid: string;
+  key: string;
+  channel: string;
+  sendall: boolean;
+}) => {
   sdloading.value = true;
   const url =
     apiuri.value +
-    `/sendmessage?cid=${encodeURIComponent(selectedValue.value)}&color1=${encodeURIComponent(color.value)}&color2=${encodeURIComponent(color2.value)}&textcolor=${encodeURIComponent(color3.value)}&button=${encodeURIComponent(bottontext.value)}&openbutton=${encodeURIComponent(openbotton.value)}&botton=${encodeURIComponent(bottontext.value)}&burl=${encodeURIComponent(bottonurl.value)}&btcolor=${encodeURIComponent(bottoncolor.value)}&openimg=${encodeURIComponent(img.value)}&img=${encodeURIComponent(imgurl.value)}&mdtext=${encodeURIComponent(text.value)}&bt=${encodeURIComponent(bttext.value)}&gid=${encodeURIComponent(gid.value)}&key=${encodeURIComponent(key.value)}&type=${sendall.value}`;
+    `/sendmessage?cid=${encodeURIComponent(payload.channel)}&color1=${encodeURIComponent(color.value)}&color2=${encodeURIComponent(color2.value)}&textcolor=${encodeURIComponent(color3.value)}&button=${encodeURIComponent(bottontext.value)}&openbutton=${encodeURIComponent(openbotton.value)}&botton=${encodeURIComponent(bottontext.value)}&burl=${encodeURIComponent(bottonurl.value)}&btcolor=${encodeURIComponent(bottoncolor.value)}&openimg=${encodeURIComponent(img.value)}&img=${encodeURIComponent(imgurl.value)}&mdtext=${encodeURIComponent(text.value)}&bt=${encodeURIComponent(bttext.value)}&gid=${encodeURIComponent(payload.gid)}&key=${encodeURIComponent(payload.key)}&type=${payload.sendall}`;
 
   console.log("Request URL:", url);
 
@@ -808,14 +783,14 @@ const sendmsg = () => {
       sdloading.value = false;
       send.value = false;
       if (data.ok == true) {
-        if (sendall.value == true) {
+        if (payload.sendall == true) {
           message.value.success("任务已创建");
           taskid.value = data.taskid;
           // 写入本地存储
           localStorage.setItem("taskid", data.taskid);
 
           gettask();
-          setInterval(gettask, 300);
+          setInterval(gettask, 400);
           p.value = 4;
         } else {
           message.value.success("发送成功！");
@@ -834,11 +809,16 @@ const sendmsg = () => {
     });
 };
 
-const sendtext = () => {
+const sendtext = (payload: {
+  gid: string;
+  key: string;
+  channel: string;
+  sendall: boolean;
+}) => {
   sdloading.value = true;
   const url =
     apiuri.value +
-    `/sendtext?cid=${encodeURIComponent(selectedValue.value)}&text=${encodeURIComponent(textmsg.value)}&type=${encodeURIComponent(sendall.value)}&gid=${encodeURIComponent(gid.value)}&key=${encodeURIComponent(key.value)}`;
+    `/sendtext?cid=${encodeURIComponent(payload.channel)}&text=${encodeURIComponent(textmsg.value)}&type=${encodeURIComponent(payload.sendall)}&gid=${encodeURIComponent(payload.gid)}&key=${encodeURIComponent(payload.key)}`;
 
   fetch(url)
     .then((response) => response.json())
@@ -847,7 +827,7 @@ const sendtext = () => {
       sdloading.value = false;
       send.value = false;
       if (data.ok == true) {
-        if (sendall.value == true) {
+        if (payload.sendall == true) {
           message.value.success("任务已创建");
           taskid.value = data.taskid;
           // 写入本地存储
@@ -868,11 +848,16 @@ const sendtext = () => {
     });
 };
 
-const sendRichText = () => {
+const sendRichText = (payload: {
+  gid: string;
+  key: string;
+  channel: string;
+  sendall: boolean;
+}) => {
   sdloading.value = true;
   const url =
     apiuri.value +
-    `/sendRichText?cid=${encodeURIComponent(selectedValue.value)}&text=${encodeURIComponent(deltaContent.value)}&type=${encodeURIComponent(sendall.value)}&gid=${encodeURIComponent(gid.value)}&key=${encodeURIComponent(key.value)}&bt=${encodeURIComponent(bttext.value)}`;
+    `/sendRichText?cid=${encodeURIComponent(payload.channel)}&text=${encodeURIComponent(deltaContent.value)}&type=${encodeURIComponent(payload.sendall)}&gid=${encodeURIComponent(payload.gid)}&key=${encodeURIComponent(payload.key)}&bt=${encodeURIComponent(bttext.value)}`;
 
   fetch(url)
     .then((response) => response.json())
@@ -881,7 +866,7 @@ const sendRichText = () => {
       sdloading.value = false;
       send.value = false;
       if (data.ok == true) {
-        if (sendall.value == true) {
+        if (payload.sendall == true) {
           message.value.success("任务已创建");
           taskid.value = data.taskid;
           // 写入本地存储

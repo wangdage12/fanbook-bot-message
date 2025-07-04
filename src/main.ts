@@ -21,6 +21,22 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.replayIntegration({ maskAllText: false, blockAllMedia: false }),
+    Sentry.feedbackIntegration({
+      // Additional SDK configuration goes in here, for example:
+      colorScheme: "system",
+      triggerLabel: "反馈",
+      formTitle: "反馈问题",
+      submitButtonLabel: "提交",
+      cancelButtonLabel: "取消",
+      addScreenshotButtonLabel: "添加截图",
+      removeScreenshotButtonLabel: "移除截图",
+      nameLabel: "姓名",
+      emailLabel: "邮箱",
+      isRequiredLabel: "（必填）",
+      messageLabel: "问题描述",
+      messagePlaceholder: "请描述您遇到的问题或建议",
+      successMessageText: "感谢您的反馈，我们会尽快处理！",
+    }),
   ],
   // Tracing
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
@@ -29,6 +45,8 @@ Sentry.init({
     "localhost",
     /^https:\/\/yourserver\.io\/api/,
     "124.221.67.43",
+    "https://wdgmsg.loca.lt/",
+    "https://botmsg.wdg.cloudns.ch/",
   ],
   // Session Replay
   replaysSessionSampleRate: 0.3, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.

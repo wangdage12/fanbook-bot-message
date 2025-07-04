@@ -604,7 +604,11 @@ def sendRichText():
         return {'ok':True,'taskid':taskid}
     else:
         logger.info(f'服务器{gid}发送富文本消息到频道{cid}')
-        delta=json.loads(text)
+        try:
+            delta=json.loads(text)
+        except json.JSONDecodeError:
+            logger.error(f'服务器{gid}发送富文本消息到频道{cid}失败，富文本格式错误')
+            return {'ok':False,'msg':'富文本格式错误，请检查富文本格式'}
         # 遍历delta中的每个元素，检查是否有图片，如果insert中有image，将image字段名改为source
         for i in delta:
             if 'insert' in i and isinstance(i['insert'], dict) and 'image' in i['insert']:
