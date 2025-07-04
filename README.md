@@ -38,6 +38,15 @@ config.json：
 
 ### Windows
 
+> windows下部署方式和linux基本一致
+
+```sh
+pip install -r requirements.txt
+python msgapi.py
+```
+
+**或者：**
+
 下载bot python框架：[框架安装程序](https://124.221.67.43/hj_update.exe)  
 
 **单独创建一个文件夹，先将安装程序放里面安装，然后server里面的东西复制到框架的根目录下面**  
