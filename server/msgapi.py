@@ -113,105 +113,71 @@ def process_markdown(text):
 
 # 富文本适配
 def process_rich_text(delta):
-    # 遍历delta中的每个元素，检查是否有图片，如果insert中有image，将image字段名改为source
-    for i in delta:
-        if 'insert' in i and isinstance(i['insert'], dict) and 'image' in i['insert']:
-            i['insert']['source'] = i['insert'].pop('image')
-            i['insert']["_type"]= 'image'
-            # i["width"]= 279.0
-            # i["height"]= 130.0
-            i['insert']["_inline"]= False
+    """处理富文本delta，转换图片字段并标注提及"""
+    # 处理图片字段
+    delta = _process_images(delta)
+    
+    # 处理用户提及
+    delta = _process_user_mentions(delta)
+    
+    # 处理频道提及
+    delta = _process_channel_mentions(delta)
+    
+    # 处理角色提及
+    delta = _process_role_mentions(delta)
+    
+    return delta
 
-    # 识别提及用户
-    pattern = r"(\${@![^}]+})"  # 匹配 ${@!xxx} 这样的字符串
+def _process_images(delta):
+    """处理图片字段转换"""
+    for item in delta:
+        if 'insert' in item and isinstance(item['insert'], dict) and 'image' in item['insert']:
+            item['insert']['source'] = item['insert'].pop('image')
+            item['insert']["_type"] = 'image'
+            item['insert']["_inline"] = False
+    return delta
 
+def _process_user_mentions(delta):
+    """处理用户提及"""
+    pattern = r"(\$\{@![^}]{1,100}\})"
+    return _process_mentions(delta, pattern, "at")
+
+def _process_channel_mentions(delta):
+    """处理频道提及"""
+    pattern = r"(\$\{#[^}]{1,100}\})"
+    return _process_mentions(delta, pattern, "channel")
+
+def _process_role_mentions(delta):
+    """处理角色提及"""
+    pattern = r"(\$\{@&[^}]{1,100}\})"
+    return _process_mentions(delta, pattern, "at")
+
+def _process_mentions(delta, pattern, attribute_key):
+    """通用的提及处理函数"""
     result = []
     for item in delta:
+        if not isinstance(item.get("insert"), str):
+            result.append(item)
+            continue
+            
         insert_text = item["insert"]
         parts = re.split(pattern, insert_text)
-
+        
         for part in parts:
             if not part:
                 continue
             if re.match(pattern, part):
                 result.append({
                     "insert": part,
-                    "attributes": {
-                        "at": part
-                    }
+                    "attributes": {attribute_key: part}
                 })
             else:
-                result.append({
-                    "insert": part
-                })
-    delta= result
-    print(delta)
-    # 识别提及频道
-    pattern = r"(\${#.*?})"  # 匹配 ${#xxx} 这样的字符串
-
-    result = []
-    for item in delta:
-        insert_text = item["insert"]
-        parts = re.split(pattern, insert_text)
-
-        for part in parts:
-            if not part:
-                continue
-            if re.match(pattern, part):
-                result.append({
-                    "insert": part,
-                    "attributes": {
-                        "channel": part
-                    }
-                })
-            else:
-                result.append({
-                    "insert": part
-                })
-                # 如果有at属性，则将其添加到insert的attributes中
-                try:
-                    if "attributes" in item:
-                        if "at" in item["attributes"]:
-                            result[-1]["attributes"] = item["attributes"]
-                except KeyError:
-                    pass
-    delta= result
-    # 识别提及角色
-    pattern = r"(\${@&.*?})"  # 匹配 ${@&xxx} 这样的字符串
-
-    result = []
-    for item in delta:
-        insert_text = item["insert"]
-        parts = re.split(pattern, insert_text)
-
-        for part in parts:
-            if not part:
-                continue
-            if re.match(pattern, part):
-                result.append({
-                    "insert": part,
-                    "attributes": {
-                        "at": part
-                    }
-                })
-            else:
-                result.append({
-                    "insert": part
-                })
-                # 如果有at属性，则将其添加到insert的attributes中
-                try:
-                    if "attributes" in item:
-                        if "at" in item["attributes"]:
-                            result[-1]["attributes"] = item["attributes"]
-                except KeyError:
-                    pass
-                # 如果有channel属性，则将其添加到insert的attributes中
-                try:
-                    if "channel" in item["attributes"]:
-                        result[-1]["attributes"] = item["attributes"]
-                except KeyError:
-                    pass
-
+                new_item = {"insert": part}
+                # 保留原有属性
+                if "attributes" in item:
+                    new_item["attributes"] = item["attributes"]
+                result.append(new_item)
+    
     return result
 
 # 验证颜色是否符合要求
