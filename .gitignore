@@ -31,3 +31,9 @@ coverage
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# 防止提交敏感信息
+.env
+config.json
+server/data.json
+server/token.json
