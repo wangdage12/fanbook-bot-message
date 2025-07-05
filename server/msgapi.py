@@ -111,6 +111,109 @@ def process_markdown(text):
     
     return image_links, modified_text, split_text
 
+# 富文本适配
+def process_rich_text(delta):
+    # 遍历delta中的每个元素，检查是否有图片，如果insert中有image，将image字段名改为source
+    for i in delta:
+        if 'insert' in i and isinstance(i['insert'], dict) and 'image' in i['insert']:
+            i['insert']['source'] = i['insert'].pop('image')
+            i['insert']["_type"]= 'image'
+            # i["width"]= 279.0
+            # i["height"]= 130.0
+            i['insert']["_inline"]= False
+
+    # 识别提及用户
+    pattern = r"(\${@![^}]+})"  # 匹配 ${@!xxx} 这样的字符串
+
+    result = []
+    for item in delta:
+        insert_text = item["insert"]
+        parts = re.split(pattern, insert_text)
+
+        for part in parts:
+            if not part:
+                continue
+            if re.match(pattern, part):
+                result.append({
+                    "insert": part,
+                    "attributes": {
+                        "at": part
+                    }
+                })
+            else:
+                result.append({
+                    "insert": part
+                })
+    delta= result
+    print(delta)
+    # 识别提及频道
+    pattern = r"(\${#.*?})"  # 匹配 ${#xxx} 这样的字符串
+
+    result = []
+    for item in delta:
+        insert_text = item["insert"]
+        parts = re.split(pattern, insert_text)
+
+        for part in parts:
+            if not part:
+                continue
+            if re.match(pattern, part):
+                result.append({
+                    "insert": part,
+                    "attributes": {
+                        "channel": part
+                    }
+                })
+            else:
+                result.append({
+                    "insert": part
+                })
+                # 如果有at属性，则将其添加到insert的attributes中
+                try:
+                    if "attributes" in item:
+                        if "at" in item["attributes"]:
+                            result[-1]["attributes"] = item["attributes"]
+                except KeyError:
+                    pass
+    delta= result
+    # 识别提及角色
+    pattern = r"(\${@&.*?})"  # 匹配 ${@&xxx} 这样的字符串
+
+    result = []
+    for item in delta:
+        insert_text = item["insert"]
+        parts = re.split(pattern, insert_text)
+
+        for part in parts:
+            if not part:
+                continue
+            if re.match(pattern, part):
+                result.append({
+                    "insert": part,
+                    "attributes": {
+                        "at": part
+                    }
+                })
+            else:
+                result.append({
+                    "insert": part
+                })
+                # 如果有at属性，则将其添加到insert的attributes中
+                try:
+                    if "attributes" in item:
+                        if "at" in item["attributes"]:
+                            result[-1]["attributes"] = item["attributes"]
+                except KeyError:
+                    pass
+                # 如果有channel属性，则将其添加到insert的attributes中
+                try:
+                    if "channel" in item["attributes"]:
+                        result[-1]["attributes"] = item["attributes"]
+                except KeyError:
+                    pass
+
+    return result
+
 # 验证颜色是否符合要求
 def is_valid_color(color):
     # 检查颜色是否为6位十六进制数
@@ -588,15 +691,8 @@ def sendRichText():
             delta.append({
     "insert": "\n"
   })
-        # 遍历delta中的每个元素，检查是否有图片，如果insert中有image，将image字段名改为source
-        for i in delta:
-            if 'insert' in i and isinstance(i['insert'], dict) and 'image' in i['insert']:
-                i['insert']['source'] = i['insert'].pop('image')
-                i['insert']["_type"]= 'image'
-                # i["width"]= 279.0
-                # i["height"]= 130.0
-                i['insert']["_inline"]= False
-        # print(delta)
+        delta=process_rich_text(delta)
+
         logger.debug(f'富文本json：{delta}')
         # 目前有一个bug，图片在pc端上非常小，web端上非常大，目前不清楚原因
         msg={
@@ -621,15 +717,8 @@ def sendRichText():
         except json.JSONDecodeError:
             logger.error(f'服务器{gid}发送富文本消息到频道{cid}失败，富文本格式错误')
             return {'ok': False, 'msg': '富文本格式错误，请检查富文本格式'}
-        # 遍历delta中的每个元素，检查是否有图片，如果insert中有image，将image字段名改为source
-        for i in delta:
-            if 'insert' in i and isinstance(i['insert'], dict) and 'image' in i['insert']:
-                i['insert']['source'] = i['insert'].pop('image')
-                i['insert']["_type"]= 'image'
-                # i["width"]= 279.0
-                # i["height"]= 130.0
-                i['insert']["_inline"]= False
-        # print(delta)
+        delta = process_rich_text(delta)
+                
         logger.debug(f'富文本json：{delta}')
         # 目前有一个bug，图片在pc端上非常小，web端上非常大，目前不清楚原因
         msg={
