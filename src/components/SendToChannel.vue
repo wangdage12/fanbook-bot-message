@@ -1,7 +1,7 @@
 <template>
   <f-dialog
     v-model:visible="localVisible"
-    title="发送到频道[分离组件]"
+    title="发送到频道"
     :on-open="onOpen"
   >
     <Spin :spinning="spinning" indicator="dynamic-circle">
