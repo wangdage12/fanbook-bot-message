@@ -819,7 +819,7 @@ function startPolling() {
   gettask();
 
   // 再开始新的定时器
-  taskTimer = setInterval(gettask, 300);
+  taskTimer = setInterval(gettask, 300) as unknown as number;
 }
 
 
