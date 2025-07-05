@@ -87,9 +87,6 @@ function onBlur() {
   props.onOpen?.();
 }
 
-// function change(value) {
-//   selectedValue.value = value
-// }
 const change = (value: string) => {
   selectedValue.value = value;
   if (selectedValue.value == "") {

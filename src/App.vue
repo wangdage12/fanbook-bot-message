@@ -253,9 +253,6 @@
       </DescriptionsItem>
       <DescriptionsItem label="剩余时间">{{ time_remaining }}</DescriptionsItem>
       <DescriptionsItem label="完成时间">{{ endtime }}</DescriptionsItem>
-      <!-- <DescriptionsItem label="Negotiated Amount">$80.00</DescriptionsItem>
-    <DescriptionsItem label="Discount">$20.00</DescriptionsItem>
-    <DescriptionsItem label="Official Receipts">$60.00</DescriptionsItem> -->
     </Descriptions>
     <Progress
       :stroke-width="10"
@@ -368,44 +365,6 @@
 
       <Button type="primary" @click="send = true">发送</Button>
 
-      <!-- <f-dialog v-model:visible="send" title="发送到频道" :on-open="getchannel">
-        <Spin :spinning="spinning" indicator="dynamic-circle">
-          <f-text>服务器ID：</f-text>
-          <f-input
-            v-model="gid"
-            type="text"
-            :on-blur="getchannel"
-            placeholder="请输入服务器ID"
-          />
-          <Select
-            :options="options"
-            width="200px"
-            placeholder="选择频道"
-            @change="change"
-            v-model="selectedValue"
-          />
-        </Spin>
-        <Tooltip tooltip="为了安全所生成的密钥，若没有请服务器主找开发者获取">
-          <Input
-            v-model:value="key"
-            password
-            placeholder="请输入服务器安全密钥"
-            addonBefore="服务器安全密钥"
-          />
-        </Tooltip>
-        <br />
-        <f-text>推送到频道中所有成员的私信：</f-text>
-        <Switch v-model="sendall" />
-        <template #footer>
-          <f-button
-            type="primary"
-            :on-click="sendRichText"
-            :disabled="disabled"
-            :loading="sdloading"
-            >发送到频道</f-button
-          >
-        </template>
-      </f-dialog> -->
       <SendToChannel
         v-model:visible="send"
         :options="options"
@@ -560,6 +519,9 @@ const toolbars: ToolbarNames[] = [
 
 const deltaContent = ref("");
 const cardjson = ref(""); // 存储服务器构建好的卡片json
+
+let taskTimer: number | null = null;   // 统一保存定时器 ID
+let isFetching = false;                // 请求锁（防并发）
 
 const handleDebugChange = (value: boolean) => {
   // 保存到本地存储
@@ -789,8 +751,7 @@ const sendmsg = (payload: {
           // 写入本地存储
           localStorage.setItem("taskid", data.taskid);
 
-          gettask();
-          setInterval(gettask, 400);
+          startPolling();
           p.value = 4;
         } else {
           message.value.success("发送成功！");
@@ -826,27 +787,41 @@ const sendtext = (payload: {
       console.log(data);
       sdloading.value = false;
       send.value = false;
-      if (data.ok == true) {
-        if (payload.sendall == true) {
+
+      if (data.ok) {
+        if (payload.sendall) {
           message.value.success("任务已创建");
           taskid.value = data.taskid;
-          // 写入本地存储
           localStorage.setItem("taskid", data.taskid);
-
-          gettask();
-          setInterval(gettask, 300);
           p.value = 4;
+
+          startPolling();   // 启动轮询
         } else {
           message.value.success("发送成功！");
         }
       } else {
         message.value.error(`发送失败！(${data.msg})`);
-        if (data.msg == "为了安全性，请点击下方加入服务器按钮，以获取密钥") {
+        if (data.msg === "为了安全性，请点击下方加入服务器按钮，以获取密钥") {
           notKey.value = true;
         }
       }
     });
 };
+
+// 统一管理轮询
+function startPolling() {
+  // 先清掉旧的定时器
+  if (taskTimer !== null) {
+    clearInterval(taskTimer);
+  }
+
+  // 立即执行一次
+  gettask();
+
+  // 再开始新的定时器
+  taskTimer = setInterval(gettask, 300);
+}
+
 
 const sendRichText = (payload: {
   gid: string;
@@ -872,8 +847,7 @@ const sendRichText = (payload: {
           // 写入本地存储
           localStorage.setItem("taskid", data.taskid);
 
-          gettask();
-          setInterval(gettask, 300);
+          startPolling();
           p.value = 4;
         } else {
           message.value.success("发送成功！");
@@ -888,6 +862,8 @@ const sendRichText = (payload: {
 };
 
 const gettask = () => {
+  if (isFetching) return;      // 加锁：上一轮未结束就跳过
+  isFetching = true;
   // GET http://127.0.0.1:5051/get?gid={gid}
   fetch(apiuri.value + "/getTask?pid=" + taskid.value)
     .then((response) => response.json())
@@ -935,16 +911,22 @@ const gettask = () => {
     })
     .catch((error) => {
       console.error(error);
+      isFetching = false; // 发生错误时解锁
     });
+     isFetching = false;  
 };
 
 const usergettask = () => {
   p.value = 4;
-  setInterval(gettask, 500);
+   startPolling();
 };
 
 const back1 = () => {
   p.value = 1;
+        if (taskTimer !== null) {
+          clearInterval(taskTimer);
+          taskTimer = null;
+        }
 };
 
 // 本地存储读取gid
@@ -955,4 +937,6 @@ if (gidlocal) {
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+
+</style>

@@ -710,7 +710,10 @@ def info():
         logger.info(f'服务器{gid}获取基本信息失败'+ str(e))
         return {'ok':False,'white':False,'black':False,'msg':'获取基本信息失败'}
 
-    
+@app.route('/', methods=['GET'])
+def index():
+    return {"msg": "欢迎使用WDG Fanbook消息平台API，要了解更多，请查看：https://github.com/wangdage12/fanbook-bot-message","ok": True}
+
 if __name__ == '__main__':
     logger.info("初始化完成，开始运行")
     app.run(host='0.0.0.0', port=5051)
