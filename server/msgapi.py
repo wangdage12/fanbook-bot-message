@@ -777,6 +777,28 @@ def info():
         logger.info(f'服务器{gid}获取基本信息失败'+ str(e))
         return {'ok': False, 'white': False, 'black': False, 'msg': '获取基本信息失败'}
 
+# 短id查询用户
+@app.route('/searchUser', methods=['GET'])
+def searchUser():
+    # Post: /api/bot/{bot token}/searchGuildMemberByName
+    """搜索服务器成员，输入服务器id和用户短id，返回用户信息
+    """
+    gid = flask.request.args.get('gid')
+    shortid = flask.request.args.get('shortid')
+    if not shortid or not gid:
+        return {'ok': False, 'msg': '缺少参数'}
+    url=f'https://a1.fanbook.cn/api/bot/{bottoken}/searchGuildMemberByName'
+    headers={'Content-Type': 'application/json'}
+    body=json.dumps({'guild_id': int(gid), 'username': [shortid]})
+    response = requests.post(url, headers=headers, data=body)
+    d = json.loads(response.text)
+    print(d)
+    if d['ok'] == True and 'result' in d and len(d['result']) > 0:
+        logger.info(f'服务器{gid}搜索用户{shortid}成功')
+        return {'ok': True, 'data': [{"value": str(d['result'][0]['user']['id']), "label": str(d['result'][0]['user']['first_name'])}], 'msg': '搜索用户成功'}
+    logger.info(f'服务器{gid}搜索用户{shortid}失败')
+    return {'ok': False, 'data': [], 'msg': '搜索用户失败，可能是用户不存在'}
+
 @app.route('/', methods=['GET'])
 def index():
     return {"msg": "欢迎使用WDG Fanbook消息平台API，要了解更多，请查看：https://github.com/wangdage12/fanbook-bot-message", "ok": True}

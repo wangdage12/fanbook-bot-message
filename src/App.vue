@@ -1,5 +1,66 @@
 <template>
   <Message ref="message" />
+    <FloatButton @click="haveTool = !haveTool;getgidInfo" :left="20" :bottom="20">
+      <template #icon>
+        @
+      </template>
+    </FloatButton>
+    <!-- 获取提及工具 -->
+  <f-dialog
+    :visible="haveTool"
+    title="获取提及工具"
+    :on-open="getgidInfo"
+  >
+<Spin :spinning="spinning" indicator="dynamic-circle">
+  <f-text>服务器ID：</f-text>
+      <f-input
+        v-model="gid"
+        type="text"
+        @blur="getgidInfo"
+        placeholder="请输入服务器ID"
+      />
+          <div v-if="haveGinfo">
+              <h3>提及频道</h3>
+          <text>服务器名称：{{ ginfo.gname }}</text>
+          <br />
+          <Select
+            :options="options"
+            width="75%"
+            placeholder="选择频道"
+            @change="change"
+            v-model="selectedValue"
+          />
+          <Button type="primary" @click="copycidAT">复制</Button>
+          <br />
+          <text>频道ID:{{ selectedValue }} </text>
+          <Divider />
+          <h3>提及角色</h3>
+          <Select
+            :options="groups"
+            width="75%"
+            placeholder="选择角色"
+            @change="change"
+            v-model="groupid"
+          />
+          <Button type="primary" @click="copygupid">复制</Button>
+          <br />
+          <text>角色ID:{{ groupid }} </text>
+          <Divider />
+          <h3>提及成员</h3>
+          <f-text>成员短ID：</f-text>
+          <f-input v-model="shortid" type="text" placeholder="请输入短ID" @blur="searchUser" />
+          <Select
+            :options="userlist"
+            width="75%"
+            placeholder="选择成员"
+            @change="change"
+            v-model="memberid"
+          />
+          <Button type="primary" @click="copymid">复制</Button>
+          <br />
+          <text>成员ID:{{ memberid }} </text>
+        </div></Spin>
+  </f-dialog>
   <div v-if="p == 1">
     <f-page-header :on-back="testButton" title="bot工具" />
     <Alert
@@ -398,6 +459,8 @@ import {
   ColorPicker,
   Space,
   Flex,
+  FloatButton,
+  Spin,
 } from "vue-amazing-ui";
 
 import "vue-amazing-ui/css";
@@ -520,6 +583,13 @@ const toolbars: ToolbarNames[] = [
 const deltaContent = ref("");
 const cardjson = ref(""); // 存储服务器构建好的卡片json
 
+const groups = ref<{ label: string; value: string }[]>([]); // 服务器角色列表
+const groupid = ref(""); // 选中的角色id
+const userlist = ref([]); // 服务器成员列表
+const memberid = ref(""); // 选中的成员id
+// 是否打开提及工具
+const haveTool = ref(false);
+
 let taskTimer: number | null = null;   // 统一保存定时器 ID
 let isFetching = false;                // 请求锁（防并发）
 
@@ -582,6 +652,21 @@ const haveGinfo = ref(false);
 
 const copycid = () => {
   navigator.clipboard.writeText(selectedValue.value);
+  message.value?.success("复制成功");
+};
+const copycidAT = () => {
+  // 复制值时需要${#selectedValue.value}格式
+  navigator.clipboard.writeText(`\${#${selectedValue.value}}`);
+  message.value?.success("复制成功");
+};
+const copygupid = () => {
+  // 复制角色ID时需要${@&groupid.value}格式
+  navigator.clipboard.writeText(`\${@&${groupid.value}}`);
+  message.value?.success("复制成功");
+};
+const copymid = () => {
+  // 复制成员ID时需要${@!memberid.value}格式
+  navigator.clipboard.writeText(`\${@!${memberid.value}}`);
   message.value?.success("复制成功");
 };
 
@@ -676,7 +761,41 @@ const getgidInfo = () => {
         ginfo.value = data;
         spinning.value = false;
         haveGinfo.value = true;
+        // 获取角色信息，在data.data.result.roles中，id转换为value，name转换为label
+        if (data.data.result && data.data.result.roles) {
+          type Role = { id: string; name: string };
+          groups.value = data.data.result.roles.map((role: Role) => ({
+            label: role.name,
+            value: role.id
+          }));
+          // groups里面再加一个全体成员，值是服务器id
+          groups.value.push({ label: "全体成员", value: gid.value });
+        }
+
         getchannel();
+        message.value?.success(data.msg);
+      } else {
+        message.value?.error(data.msg);
+        spinning.value = false;
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+      spinning.value = false;
+    });
+};
+
+// 短id获取用户
+// GET /searchUser?gid={gid}&shortid={shortid}
+const shortid = ref("");
+const searchUser = () => {
+  spinning.value = true;
+  fetch(apiuri.value + "/searchUser?gid=" + gid.value + "&shortid=" + shortid.value)
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.ok == true) {
+        userlist.value = data.data;
+        spinning.value = false;
         message.value?.success(data.msg);
       } else {
         message.value?.error(data.msg);
@@ -935,6 +1054,7 @@ if (gidlocal) {
   gid.value = gidlocal;
   // getchannel()
 }
+
 </script>
 
 <style scoped>
