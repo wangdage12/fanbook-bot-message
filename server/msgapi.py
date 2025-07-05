@@ -496,6 +496,14 @@ def sendtext():
 @app.route('/sendRichText', methods=['get'])
 def sendRichText():
     # global ids,roks,errs,texttypes
+    """
+    Handles the sending of rich text (Quill v2) messages to a specified channel or as a broadcast to all users in a guild.
+    
+    Validates server security credentials and blacklist status before processing. Accepts a JSON-formatted rich text delta, modifies image fields for compatibility, and appends server origin information based on whitelist status. For broadcast messages, initiates a background thread to send the message to all users and returns a task ID. For single-channel messages, sends the message directly and returns the API response. Returns an error if the rich text format is invalid or if security checks fail.
+    
+    Returns:
+        dict: A result object indicating success or failure, with additional information such as a task ID or error message.
+    """
     cid = flask.request.args.get('cid')
     text = flask.request.args.get('text')
     ttype=flask.request.args.get('type')
