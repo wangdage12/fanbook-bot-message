@@ -89,7 +89,7 @@ function onBlur() {
 
 const change = (value: string) => {
   selectedValue.value = value;
-  if (selectedValue.value == "") {
+  if (selectedValue.value === "") {
     disabled.value = true;
   } else {
     disabled.value = false;

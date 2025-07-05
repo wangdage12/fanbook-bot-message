@@ -18,7 +18,9 @@ import threading
 import sentry_sdk
 import ctypes
 import re
+import os
 
+TASK_DIR = 'tasks/'
 
 logger.info("加载完成，开始初始化")
 
@@ -177,7 +179,9 @@ def get_guild(token='',guid='',userid=''):#获取服务器信息
     r=requests.post(url,headers=headers,data=body,verify=False)
     return json.loads(r.text)
 
-
+# 如果没有tasks文件夹，则创建一个
+if not os.path.exists(TASK_DIR[:-1]):
+    os.makedirs(TASK_DIR[:-1])
 
 def SendMessageForAllUser(clid='',gid='',token='',text='',sl=0,yz=0,name='',Ttime=''):
     # global roks,errs,texttypes,ids
@@ -212,22 +216,22 @@ def SendMessageForAllUser(clid='',gid='',token='',text='',sl=0,yz=0,name='',Ttim
                             if datatype[0]=='User':
                                 userids.append(x['User']['user_id'])
                         logger.info(f'获取成员列表成功，已获取{str(len(userids))}个成员')
-                        Wjson(filename=name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)],"msg":"正在获取成员列表","time":Ttime,"time_remaining":str(len(userids)*0.25)})
+                        Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)],"msg":"正在获取成员列表","time":Ttime,"time_remaining":str(len(userids)*0.25)})
                         if len(rangesdata)<99:
                             logger.info(f'获取成员列表完成，共获取{str(len(userids))}个成员')
                             notend=False
-                            Wjson(filename=name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)],"msg":"获取完成，即将发送消息","time":Ttime,"time_remaining":str(len(userids)*0.25)})
+                            Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)],"msg":"获取完成，即将发送消息","time":Ttime,"time_remaining":str(len(userids)*0.25)})
                             #print(userids)
                         tabsdata+=99
                     for x in userids:
                         #print(x)
                         sendMessage(token=token,chlid=x,text=text,sl=sl,name=name)
                         sl+=1
-                        Wjson(filename=name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)]+1,"msg":"正在发送消息","time":Ttime,"time_remaining":str((len(userids)-sl)*0.25)})
-                        
+                        Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)]+1,"msg":"正在发送消息","time":Ttime,"time_remaining":str((len(userids)-sl)*0.25)})
+
                     time.sleep(1)
                     logger.info(f'发送完成，成功{str(roks[ids.index(name)]+1)}次，失败{str(errs[ids.index(name)])}次')
-                    Wjson(filename=name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)]+1,"msg":"发送完成","time":Ttime,"endtime":time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),"time_remaining":'0'})
+                    Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)]+1,"msg":"发送完成","time":Ttime,"endtime":time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),"time_remaining":'0'})
                 except:
                     logger.error('获取成员数量失败，你应该检查机器人id和频道id')
                     print(cylb)
@@ -609,14 +613,14 @@ def sendRichText():
         texttypes.append('text')
         # 启动线程
         t.start()
-        return {'ok':True,'taskid':taskid}
+        return {'ok': True, 'taskid': taskid}
     else:
         logger.info(f'服务器{gid}发送富文本消息到频道{cid}')
         try:
-            delta=json.loads(text)
+            delta = json.loads(text)
         except json.JSONDecodeError:
             logger.error(f'服务器{gid}发送富文本消息到频道{cid}失败，富文本格式错误')
-            return {'ok':False,'msg':'富文本格式错误，请检查富文本格式'}
+            return {'ok': False, 'msg': '富文本格式错误，请检查富文本格式'}
         # 遍历delta中的每个元素，检查是否有图片，如果insert中有image，将image字段名改为source
         for i in delta:
             if 'insert' in i and isinstance(i['insert'], dict) and 'image' in i['insert']:
@@ -654,7 +658,7 @@ def getTask():
         # 验证任务ID是否合法，防止路径遍历攻击，并且满足：只符合uuid4长度、不允许含有data、token
         if not is_valid_filename(name):
             return {'ok': False, 'msg': '非法的任务ID'}
-        d=Rjson(name+'.json')
+        d=Rjson(TASK_DIR+name+'.json')
         logger.info(f'获取任务{name}成功')
         return d
     except:
@@ -716,11 +720,11 @@ def info():
     except Exception as e:
         # print(e)
         logger.info(f'服务器{gid}获取基本信息失败'+ str(e))
-        return {'ok':False,'white':False,'black':False,'msg':'获取基本信息失败'}
+        return {'ok': False, 'white': False, 'black': False, 'msg': '获取基本信息失败'}
 
 @app.route('/', methods=['GET'])
 def index():
-    return {"msg": "欢迎使用WDG Fanbook消息平台API，要了解更多，请查看：https://github.com/wangdage12/fanbook-bot-message","ok": True}
+    return {"msg": "欢迎使用WDG Fanbook消息平台API，要了解更多，请查看：https://github.com/wangdage12/fanbook-bot-message", "ok": True}
 
 if __name__ == '__main__':
     logger.info("初始化完成，开始运行")

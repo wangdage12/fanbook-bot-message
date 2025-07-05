@@ -744,8 +744,8 @@ const sendmsg = (payload: {
       console.log(data);
       sdloading.value = false;
       send.value = false;
-      if (data.ok == true) {
-        if (payload.sendall == true) {
+      if (data.ok === true) {
+        if (payload.sendall === true) {
           message.value.success("任务已创建");
           taskid.value = data.taskid;
           // 写入本地存储
@@ -840,8 +840,8 @@ const sendRichText = (payload: {
       console.log(data);
       sdloading.value = false;
       send.value = false;
-      if (data.ok == true) {
-        if (payload.sendall == true) {
+      if (data.ok === true) {
+        if (payload.sendall === true) {
           message.value.success("任务已创建");
           taskid.value = data.taskid;
           // 写入本地存储
