@@ -1,6 +1,6 @@
 <template>
   <el-config-provider :locale="zhCn">
-    <FloatButton @click="haveTool = !haveTool;getgidInfo" :left="20" :bottom="20">
+    <FloatButton type="primary" @click="haveTool = !haveTool;getgidInfo" :left="20" :bottom="25" :width="40" :height="40">
       <template #icon>
         @
       </template>
@@ -321,7 +321,7 @@
           style="height: 400px; margin-top: 20px"
         />
       </div>
-      <Button type="primary" @click="send = true">发送</Button>
+      <el-button type="primary" @click="send = true">发送</el-button>
     </div>
     <SendToChannel
       v-model:visible="send"
@@ -364,7 +364,7 @@
     <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
     <v-text>文本：</v-text>
     <el-input v-model="textmsg" type="textarea" />
-    <Button type="primary" @click="send = true">发送</Button>
+    <el-button type="primary" @click="send = true">发送</el-button>
 
     <SendToChannel
       v-model:visible="send"
@@ -592,7 +592,7 @@
         />
       </div>
 
-      <Button type="primary" @click="send = true">发送</Button>
+      <el-button type="primary" @click="send = true">发送</el-button>
 
       <SendToChannel
         v-model:visible="send"
@@ -610,14 +610,10 @@
 <script setup lang="ts">
 import {
   Button,
-  Card,
-  Input,
   Switch,
   Divider,
-  Select,
   Progress,
   Result,
-  Tag,
   ColorPicker,
   Space,
   Flex,
