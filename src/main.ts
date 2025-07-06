@@ -1,11 +1,10 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import * as Sentry from "@sentry/vue";
-import FightingDesign from "fighting-design";
-import "fighting-design/dist/index.css";
 import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
 import { install as MonacoPlugin } from "@guolao/vue-monaco-editor";
+import 'element-plus/theme-chalk/dark/css-vars.css'
 
 const app = createApp(App);
 app.component("QuillEditor", QuillEditor);
@@ -53,5 +52,4 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
 });
 
-app.use(FightingDesign);
 app.mount("#app");

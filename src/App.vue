@@ -1,141 +1,215 @@
 <template>
-  <Message ref="message" />
-    <FloatButton @click="haveTool = !haveTool;getgidInfo" :left="20" :bottom="20">
+  <el-config-provider :locale="zhCn">
+    <FloatButton type="primary" @click="haveTool = !haveTool;getgidInfo" :left="20" :bottom="25" :width="40" :height="40">
       <template #icon>
         @
       </template>
     </FloatButton>
     <!-- 获取提及工具 -->
-  <f-dialog
-    :visible="haveTool"
-    title="获取提及工具"
-    :on-open="getgidInfo"
+<el-dialog
+    v-model="haveTool"
+    title="提及获取工具"
+    @open="getgidInfo"
   >
-<Spin :spinning="spinning" indicator="dynamic-circle">
-  <f-text>服务器ID：</f-text>
-      <f-input
-        v-model="gid"
-        type="text"
-        @blur="getgidInfo"
-        placeholder="请输入服务器ID"
-      />
-          <div v-if="haveGinfo">
-              <h3>提及频道</h3>
-          <text>服务器名称：{{ ginfo.gname }}</text>
-          <br />
-          <Select
-            :options="options"
-            width="75%"
-            placeholder="选择频道"
-            @change="change"
-            v-model="selectedValue"
+    <div v-loading="spinning" element-loading-text="加载中...">
+      <el-form label-width="80px">
+        <el-form-item label="服务器ID" style="white-space: nowrap;">
+          <el-input
+            v-model="gid"
+            placeholder="请输入服务器ID"
+            @blur="getgidInfo"
           />
-          <Button type="primary" @click="copycidAT">复制</Button>
-          <br />
-          <text>频道ID:{{ selectedValue }} </text>
-          <Divider />
+        </el-form-item>
+        <template v-if="haveGinfo">
+                    <el-form-item label="服务器名称" style="white-space: nowrap;">
+            <span>{{ ginfo.gname }}</span>
+          </el-form-item>
+          <h3>提及频道</h3>
+          <el-form-item label="选择频道">
+            <el-select
+              v-model="selectedValue"
+              placeholder="选择频道"
+              @change="change"
+              style="width: 75%;"
+            >
+              <el-option
+                v-for="opt in options"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+            <el-button type="primary" :disabled="!selectedValue" @click="copycid">复制</el-button>
+          </el-form-item>
+          <el-form-item>
+            <span>频道ID: {{ selectedValue }}</span>
+          </el-form-item>
+          <el-divider />
+
           <h3>提及角色</h3>
-          <Select
-            :options="groups"
-            width="75%"
-            placeholder="选择角色"
-            @change="change"
-            v-model="groupid"
-          />
-          <Button type="primary" @click="copygupid">复制</Button>
-          <br />
-          <text>角色ID:{{ groupid }} </text>
-          <Divider />
+          <el-form-item label="选择角色" style="white-space: nowrap;">
+            <el-select
+              v-model="groupid"
+              placeholder="选择角色"
+              @change="change"
+              style="width: 75%;"
+            >
+              <el-option
+                v-for="grp in groups"
+                :key="grp.value"
+                :label="grp.label"
+                :value="grp.value"
+              />
+            </el-select>
+            <el-button type="primary" :disabled="!groupid" @click="copygupid">复制</el-button>
+          </el-form-item>
+          <el-form-item>
+            <span>角色ID: {{ groupid }}</span>
+          </el-form-item>
+          <el-divider />
+
           <h3>提及成员</h3>
-          <f-text>成员短ID：</f-text>
-          <f-input v-model="shortid" type="text" placeholder="请输入短ID" @blur="searchUser" />
-          <Select
-            :options="userlist"
-            width="75%"
-            placeholder="选择成员"
-            @change="change"
-            v-model="memberid"
-          />
-          <Button type="primary" @click="copymid">复制</Button>
-          <br />
-          <text>成员ID:{{ memberid }} </text>
-        </div></Spin>
-  </f-dialog>
-  <div v-if="p == 1">
-    <f-page-header :on-back="testButton" title="bot工具" />
-    <Alert
-      message="请不要滥用这些功能，更不要使用发送消息功能骚扰他人和违规使用，服务器主请保管好安全密钥，以免造成不必要的麻烦。如果你有任何想法或者建议，欢迎前往服务器反馈"
-      type="info"
-    >
-      <template #actions>
-        <Space vertical gap="small" align="center">
-          <Button size="small" type="primary" @click="openurl"
-            >加入服务器</Button
-          >
-        </Space>
-      </template>
-    </Alert>
-    <div v-if="opendebug">
-      <Alert message="已开启调试模式" type="warning">
-        <template #actions>
-          <Button size="small" type="text" @click="closeDebug"
-            >关闭调试模式</Button
-          >
+          <el-form-item label="短ID：">
+            <el-input
+              v-model="shortid"
+              placeholder="请输入短ID"
+              @blur="searchUser"
+            />
+          </el-form-item>
+          <el-form-item label="选择成员" style="white-space: nowrap;">
+            <el-select
+              v-model="memberid"
+              placeholder="选择成员"
+              @change="change"
+              style="width: 75%;"
+            >
+              <el-option
+                v-for="user in userlist"
+                :key="user.value"
+                :label="user.label"
+                :value="user.value"
+              />
+            </el-select>
+            <el-button type="primary" :disabled="!memberid" @click="copymid">复制</el-button>
+          </el-form-item>
+          <el-form-item>
+            <span>成员ID: {{ memberid }}</span>
+          </el-form-item>
         </template>
-      </Alert>
+      </el-form>
+    </div>
+  </el-dialog>
+  <div v-if="p == 1">
+    <el-page-header @back="testButton" >
+    <template #content>
+      <span class="text-large font-600 mr-3"> 消息推送工具 </span>
+    </template>
+        <template #extra>
+      <el-switch
+        v-model="darkMode"
+        inline-prompt          
+        @change="toggleDarkMode"
+      >
+        <template #active-action>🌙</template>
+        <template #inactive-action>☀️</template>
+      </el-switch>
+    </template>
+  </el-page-header>
+    <el-alert
+      title=""
+      type="primary"
+    >
+      <template #default>
+        <div class="alert-content">
+        <span>请不要滥用这些功能，更不要使用发送消息功能骚扰他人和违规使用，服务器主请保管好安全密钥，以免造成不必要的麻烦。如果你有任何想法或者建议，欢迎前往服务器反馈</span>
+        
+        <el-button  type="primary" @click="openurl" link>加入服务器</el-button>
+      </div>
+      </template>
+    </el-alert>
+    <div v-if="opendebug">
+      <el-alert title="" type="warning">
+        <template #default>
+          <div class="alert-content">
+            <el-button type="warning" @click="closeDebug" link>调试模式已开启，点击关闭调试模式</el-button>
+          </div>
+        </template>
+      </el-alert>
     </div>
     <!-- 和上面要有间隔 -->
     <div :style="{ padding: '5px' }"></div>
-    <Card hoverable title="消息推送工具">
+    <el-card shadow="hover">
+          <template #header>
+      <div class="card-header">
+        <span>消息推送工具</span>
+      </div>
+    </template>
       <Flex wrap="wrap" style="width: 100%; max-width: 650px">
-        <Button type="primary" @click="p = 3" ghost>
+        <el-button type="primary" @click="p = 3" plain>
           <template #icon>
             <SendHorizontal :size="23" :style="{ fill: 'none' }" />
           </template>
           发送文本消息
-        </Button>
-        <Button type="primary" @click="p = 2" ghost>
+        </el-button>
+        <el-button type="primary" @click="p = 2" plain>
           <template #icon>
             <MessageSquareCode :size="23" :style="{ fill: 'none' }" />
           </template>
           发送消息卡片
-        </Button>
-        <Button type="primary" @click="p = 5" ghost>
+        </el-button>
+        <el-button type="primary" @click="p = 5" plain>
           <template #icon>
             <LetterText :size="23" :style="{ fill: 'none' }" />
           </template>
           发送富文本
-        </Button>
+        </el-button>
         <!-- task为空就不显示 -->
         <div v-if="taskid.length != 0">
-          <Button type="primary" @click="usergettask" ghost>
+          <el-button type="primary" @click="usergettask" plain>
             <template #icon>
               <Logs :size="23" :style="{ fill: 'none' }" />
             </template>
             查看批量进程
-          </Button>
+          </el-button>
         </div>
       </Flex>
-    </Card>
+    </el-card>
   </div>
   <div v-if="p == 2">
-    <f-page-header :on-back="back1" title="发送消息卡片" />
-    <f-alert :alert-list="alertList1" simple title="注意：" type="warning" />
+    <el-page-header @back="back1" >
+      <template #content>
+        <span class="text-large font-600 mr-3"> 发送消息卡片 </span>
+      </template>
+              <template #extra>
+      <el-switch
+        v-model="darkMode"
+        inline-prompt          
+        @change="toggleDarkMode"
+      >
+        <template #active-action>🌙</template>
+        <template #inactive-action>☀️</template>
+      </el-switch>
+    </template>
+    </el-page-header>
+    <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
     <!-- <Alert message="提示：点击色块快速选择颜色" type="info" /> -->
     <!-- 最上方和最右边留空隙 -->
     <div style="padding-left: 10px; padding-right: 10px">
       <div :style="{ padding: '5px' }"></div>
       <h3>标题设置</h3>
-      <Input
-        v-model:value="bttext"
+      <el-input
+        v-model="bttext"
         maxlength="50"
-        showCount="true"
+
         placeholder="卡片标题"
-        addonBefore="卡片标题"
         :style="{ padding: '5px' }"
-      />
+      >
+        <template #prepend>
+          <span>卡片标题</span>
+        </template>
+      </el-input>
       <!-- <div :style="{ padding: '5px' }"></div> -->
-      <f-text>卡片标题背景色从：</f-text>
+      <text>卡片标题背景色从：</text>
       <br />
       <Space :width="150">
         <ColorPicker
@@ -145,21 +219,21 @@
         />
       </Space>
       <br />
-      <f-text>到：</f-text>
+      <text>到：</text>
       <br />
       <Space :width="150">
         <ColorPicker v-model:value="color2" :showAlpha="false" />
       </Space>
       <br />
       <div :style="{ padding: '5px' }"></div>
-      <f-text>卡片标题文本颜色：</f-text>
+      <text>卡片标题文本颜色：</text>
       <br />
       <Space :width="150">
         <ColorPicker v-model:value="color3" :showAlpha="false" />
       </Space>
       <br />
       <div :style="{ padding: '5px' }"></div>
-      <f-text>标题预览：</f-text>
+      <text>标题预览：</text>
       <!-- 创建一个预览渐变色块，里面显示标题 -->
       <br />
       <div
@@ -179,29 +253,35 @@
       <Divider />
       <h3>按钮设置</h3>
       <div :style="{ padding: '5px' }"></div>
-      <f-text>启用按钮：</f-text>
+      <text>启用按钮：</text>
       <Switch v-model="openbotton" />
       <div v-if="openbotton">
         <div :style="{ padding: '5px' }"></div>
         <!-- <f-text>按钮文本：</f-text> -->
-        <Input
-          v-model:value="bottontext"
+        <el-input
+          v-model="bottontext"
           maxlength="10"
           showCount="true"
           placeholder="按钮文本"
-          addonBefore="按钮文本"
-        />
+        >
+          <template #prepend>
+            <span>按钮文本</span>
+          </template>
+        </el-input>
         <div :style="{ padding: '5px' }"></div>
         <!-- <f-text>按钮链接：</f-text> -->
-        <Input
-          v-model:value="bottonurl"
+        <el-input
+          v-model="bottonurl"
           maxlength="200"
           showCount="true"
           placeholder="按钮链接"
-          addonBefore="按钮链接"
-        />
+        >
+          <template #prepend>
+            <span>按钮链接</span>
+          </template>
+        </el-input>
         <div :style="{ padding: '5px' }"></div>
-        <f-text>按钮颜色：</f-text>
+        <text>按钮颜色：</text>
         <br />
         <Space :width="150">
           <ColorPicker v-model:value="bottoncolor" :showAlpha="false" />
@@ -223,6 +303,7 @@
         :toolbars="toolbars"
         noUploadImg
         @onSave="onSave"
+        :theme="mdTheme"
       />
       <!-- <Textarea
       v-model:value="text"
@@ -240,7 +321,7 @@
           style="height: 400px; margin-top: 20px"
         />
       </div>
-      <Button type="primary" @click="send = true">发送</Button>
+      <el-button type="primary" @click="send = true">发送</el-button>
     </div>
     <SendToChannel
       v-model:visible="send"
@@ -265,11 +346,25 @@
     </div>
   </div>
   <div v-if="p == 3">
-    <f-page-header :on-back="back1" title="发送文本消息" />
-    <f-alert :alert-list="alertList1" simple title="注意：" type="warning" />
+    <el-page-header @back="back1" >
+      <template #content>
+        <span class="text-large font-600 mr-3"> 发送文本消息 </span>
+      </template>
+              <template #extra>
+      <el-switch
+        v-model="darkMode"
+        inline-prompt          
+        @change="toggleDarkMode"
+      >
+        <template #active-action>🌙</template>
+        <template #inactive-action>☀️</template>
+      </el-switch>
+    </template>
+    </el-page-header>
+    <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
     <v-text>文本：</v-text>
-    <Textarea v-model:value.lazy="textmsg" />
-    <Button type="primary" @click="send = true">发送</Button>
+    <el-input v-model="textmsg" type="textarea" />
+    <el-button type="primary" @click="send = true">发送</el-button>
 
     <SendToChannel
       v-model:visible="send"
@@ -294,27 +389,41 @@
     </div>
   </div>
   <div v-if="p == 4">
-    <f-page-header :on-back="back1" title="消息推送进程信息" />
-    <Alert
-      message="提示：进程在云服务器运行，你可以随时退出，之后点击首页的查看批量进程即可回到此页面"
-      type="info"
+    <el-page-header @back="back1" >
+      <template #content>
+        <span class="text-large font-600 mr-3"> 消息推送进程信息 </span>
+      </template>
+              <template #extra>
+      <el-switch
+        v-model="darkMode"
+        inline-prompt          
+        @change="toggleDarkMode"
+      >
+        <template #active-action>🌙</template>
+        <template #inactive-action>☀️</template>
+      </el-switch>
+    </template>
+    </el-page-header>
+    <el-Alert
+      title="提示：进程在云服务器运行，你可以随时退出，之后点击首页的查看批量进程即可回到此页面"
+      type="primary"
     />
-    <Descriptions title="进程信息" bordered>
-      <DescriptionsItem label="成员数量">{{ usernum }}</DescriptionsItem>
-      <DescriptionsItem label="成功数量" :contentStyle="{ color: '#52c41a' }">{{
-        successnum
-      }}</DescriptionsItem>
-      <DescriptionsItem label="失败数量" :contentStyle="{ color: '#ff4d4f' }">{{
-        failnum
-      }}</DescriptionsItem>
-      <DescriptionsItem label="创建时间">{{ Ttime }}</DescriptionsItem>
-      <DescriptionsItem label="进程id" :span="2">{{ taskid }}</DescriptionsItem>
-      <DescriptionsItem label="状态" :span="3">
-        <Badge :status="taskrun ? 'processing' : 'success'" :text="status" />
-      </DescriptionsItem>
-      <DescriptionsItem label="剩余时间">{{ time_remaining }}</DescriptionsItem>
-      <DescriptionsItem label="完成时间">{{ endtime }}</DescriptionsItem>
-    </Descriptions>
+<el-descriptions title="进程信息" border>
+  <el-descriptions-item label="成员数量">{{ usernum }}</el-descriptions-item>
+  <el-descriptions-item label="成功数量">
+    <span style="color: #52c41a">{{ successnum }}</span>
+  </el-descriptions-item>
+  <el-descriptions-item label="失败数量">
+    <span style="color: #ff4d4f">{{ failnum }}</span>
+  </el-descriptions-item>
+  <el-descriptions-item label="创建时间">{{ Ttime }}</el-descriptions-item>
+  <el-descriptions-item label="进程id" :span="2">{{ taskid }}</el-descriptions-item>
+  <el-descriptions-item label="状态" :span="3">
+    <el-badge :value="status" :type="taskrun ? 'primary' : 'success'" />
+  </el-descriptions-item>
+  <el-descriptions-item label="剩余时间">{{ time_remaining }}</el-descriptions-item>
+  <el-descriptions-item label="完成时间">{{ endtime }}</el-descriptions-item>
+</el-descriptions>
     <Progress
       :stroke-width="10"
       :stroke-color="{
@@ -326,76 +435,135 @@
     />
   </div>
   <div v-if="p == 100">
-    <f-page-header :on-back="back1" title="测试工具" />
-
+    <el-page-header @back="back1">
+      <template #content>
+        <span class="text-large font-600 mr-3"> 测试工具 </span>
+      </template>
+      <template #extra>
+        <el-switch
+          v-model="darkMode"
+          inline-prompt
+          @change="toggleDarkMode"
+        >
+          <template #active-action>🌙</template>
+          <template #inactive-action>☀️</template>
+        </el-switch>
+      </template>
+    </el-page-header>
     <div style="display: flex; flex-wrap: wrap; gap: 16px">
-      <Card hoverable title="修改默认服务器id" :width="300">
-        <Input
-          v-model:value="gid"
+      <!-- 修改默认服务器id -->
+      <el-card shadow="hover" style="width: 300px;">
+        <template #header>
+          <span>修改默认服务器id</span>
+        </template>
+        <el-input
+          v-model="gid"
           placeholder="服务器id"
-          @enter="saveGid"
-          width="75%"
+          style="width: 75%; margin-bottom: 8px"
+          @keyup.enter="saveGid"
         />
-        <Button type="primary" @click="saveGid">保存</Button>
-      </Card>
+        <el-button type="primary" @click="saveGid">保存</el-button>
+      </el-card>
 
-      <Card hoverable title="修改默认进程id" :width="300">
-        <Input
-          v-model:value="taskid"
+      <!-- 修改默认进程id -->
+      <el-card shadow="hover" style="width: 300px;">
+        <template #header>
+          <span>修改默认进程id</span>
+        </template>
+        <el-input
+          v-model="taskid"
           placeholder="进程id"
-          @enter="saveTaskid"
-          width="75%"
+          style="width: 75%; margin-bottom: 8px"
+          @keyup.enter="saveTaskid"
         />
-        <Button type="primary" @click="saveTaskid">保存</Button>
-      </Card>
-      <Card hoverable title="获取服务器信息" :width="300">
-        <div v-if="haveGinfo">
-          <text>服务器名称：{{ ginfo.gname }}</text>
-          <Tag color="green" v-if="ginfo.white">可信服务器</Tag>
-          <Tag color="red" v-if="ginfo.black">黑名单服务器</Tag>
-          <Tag color="cyan" v-if="ginfo.free">免费使用</Tag>
-          <Select
-            :options="options"
-            width="75%"
-            placeholder="选择频道"
-            @change="change"
-            v-model="selectedValue"
-          />
-          <Button type="primary" @click="copycid">复制</Button>
-          <br />
-          <text>频道ID:{{ selectedValue }} </text>
-        </div>
+        <el-button type="primary" @click="saveTaskid">保存</el-button>
+      </el-card>
 
-        <Input
-          v-model:value="gid"
+      <!-- 获取服务器信息 -->
+      <el-card shadow="hover" style="width: 300px;">
+        <template #header>
+          <span>获取服务器信息</span>
+        </template>
+        <div v-if="haveGinfo">
+          <div style="margin-bottom: 8px;">
+            <span>服务器名称：{{ ginfo.gname }}</span>
+          </div>
+          <el-tag type="success" v-if="ginfo.white" style="margin-right: 4px;">可信服务器</el-tag>
+          <el-tag type="danger" v-if="ginfo.black" style="margin-right: 4px;">黑名单服务器</el-tag>
+          <el-tag type="info" v-if="ginfo.free" style="margin-right: 4px;">免费使用</el-tag>
+          <el-select
+            v-model="selectedValue"
+            :options="options"
+            placeholder="选择频道"
+            style="width: 75%; margin: 8px 0"
+            @change="change"
+            filterable
+          >
+            <el-option
+              v-for="opt in options"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+          <el-button type="primary" @click="copycid" style="margin-bottom: 8px;">复制</el-button>
+          <div>
+            <span>频道ID: {{ selectedValue }}</span>
+          </div>
+        </div>
+        <el-input
+          v-model="gid"
           placeholder="服务器id"
-          @enter="getgidInfo"
-          width="75%"
+          style="width: 75%; margin: 8px 0"
+          @keyup.enter="getgidInfo"
         />
-        <Button type="primary" @click="getgidInfo">获取</Button>
-      </Card>
-      <Card hoverable title="debug" :width="300">
-        <Input
-          v-model:value="apiuri"
+        <el-button type="primary" @click="getgidInfo">获取</el-button>
+      </el-card>
+
+      <!-- debug -->
+      <el-card shadow="hover" style="width: 300px;">
+        <template #header>
+          <span>debug</span>
+        </template>
+        <el-input
+          v-model="apiuri"
           placeholder="api地址"
-          addonBefore="API地址"
-        />
-        <f-text>debug：</f-text>
-        <Switch v-model="opendebug" @change="handleDebugChange" />
-      </Card>
+          style="margin-bottom: 8px"
+        >
+          <template #prepend>API地址</template>
+        </el-input>
+        <span style="margin-right: 8px;">debug：</span>
+        <el-switch v-model="opendebug" @change="handleDebugChange" />
+      </el-card>
     </div>
   </div>
   <div v-if="p == 5">
-    <f-page-header :on-back="back1" title="发送富文本" />
-    <f-alert :alert-list="alertList1" simple title="注意：" type="warning" />
+    <el-page-header @back="back1" >
+      <template #content>
+        <span class="text-large font-600 mr-3"> 发送富文本 </span>
+      </template>
+              <template #extra>
+      <el-switch
+        v-model="darkMode"
+        inline-prompt          
+        @change="toggleDarkMode"
+      >
+        <template #active-action>🌙</template>
+        <template #inactive-action>☀️</template>
+      </el-switch>
+    </template>
+    </el-page-header>
+    <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
     <div :style="{ padding: '7px' }">
-      <Input
-        v-model:value="bttext"
+      <el-input
+        v-model="bttext"
         maxlength="50"
-        showCount="true"
         placeholder="标题"
-        addonBefore="标题"
-      />
+      >
+        <template #prepend>
+          <span>标题</span>
+        </template>
+      </el-input>
     </div>
     <QuillEditor
       theme="snow"
@@ -424,7 +592,7 @@
         />
       </div>
 
-      <Button type="primary" @click="send = true">发送</Button>
+      <el-button type="primary" @click="send = true">发送</el-button>
 
       <SendToChannel
         v-model:visible="send"
@@ -436,31 +604,20 @@
         @send="sendRichText"
       />
     </div>
-  </div>
+  </div></el-config-provider>
 </template>
 
 <script setup lang="ts">
 import {
-  Alert,
   Button,
-  Card,
-  Input,
   Switch,
-  Textarea,
   Divider,
-  Select,
-  Message,
-  Descriptions,
-  DescriptionsItem,
-  Badge,
   Progress,
   Result,
-  Tag,
   ColorPicker,
   Space,
   Flex,
   FloatButton,
-  Spin,
 } from "vue-amazing-ui";
 
 import "vue-amazing-ui/css";
@@ -477,6 +634,10 @@ import {
   Logs,
 } from "lucide-vue-next";
 import SendToChannel from "@/components/SendToChannel.vue";
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import { ElMessage } from 'element-plus'
+import 'element-plus/dist/index.css' // 不导入这个的话ElMessage就没有样式
+import type { Themes } from "md-editor-v3";
 
 // 自定义 image handler
 function imageHandler(this: any) {
@@ -528,7 +689,7 @@ const img = ref(true);
 const imgurl = ref("");
 const text = ref("");
 const send = ref(false);
-const options = ref([]);
+const options = ref<{ label: string; value: string }[]>([]);
 const selectedValue = ref("");
 const gid = ref("");
 const spinning = ref(false);
@@ -585,7 +746,7 @@ const cardjson = ref(""); // 存储服务器构建好的卡片json
 
 const groups = ref<{ label: string; value: string }[]>([]); // 服务器角色列表
 const groupid = ref(""); // 选中的角色id
-const userlist = ref([]); // 服务器成员列表
+const userlist = ref<{ label: string; value: string }[]>([]); // 服务器成员列表
 const memberid = ref(""); // 选中的成员id
 // 是否打开提及工具
 const haveTool = ref(false);
@@ -593,11 +754,12 @@ const haveTool = ref(false);
 let taskTimer: number | null = null;   // 统一保存定时器 ID
 let isFetching = false;                // 请求锁（防并发）
 
-const handleDebugChange = (value: boolean) => {
+const handleDebugChange = (val: string | number | boolean) => {
+  const value = Boolean(val);
   // 保存到本地存储
   localStorage.setItem("debug", String(value));
-  message.value?.success("保存成功");
-  if (opendebug.value) {
+  ElMessage({message:"保存成功",type:"success"})
+  if (value) {
     eruda.init();
     console.log("调试模式已开启");
   } else {
@@ -621,7 +783,7 @@ const closeDebug = () => {
   opendebug.value = false;
   localStorage.setItem("debug", "false");
   eruda.destroy();
-  message.value?.success("调试模式已关闭");
+  ElMessage({message:"调试模式已关闭",type:"success"});
   console.log("调试模式已关闭");
 };
 
@@ -651,23 +813,28 @@ const onconsole = () => {
 const haveGinfo = ref(false);
 
 const copycid = () => {
-  navigator.clipboard.writeText(selectedValue.value);
-  message.value?.success("复制成功");
-};
-const copycidAT = () => {
-  // 复制值时需要${#selectedValue.value}格式
+  // 复制频道ID时需要${#selectedValue.value}格式
   navigator.clipboard.writeText(`\${#${selectedValue.value}}`);
-  message.value?.success("复制成功");
+  ElMessage({
+    message: "复制成功",
+    type: "success",
+  });
 };
 const copygupid = () => {
   // 复制角色ID时需要${@&groupid.value}格式
   navigator.clipboard.writeText(`\${@&${groupid.value}}`);
-  message.value?.success("复制成功");
+  ElMessage({
+    message: "复制成功",
+    type: "success",
+  });
 };
 const copymid = () => {
   // 复制成员ID时需要${@!memberid.value}格式
   navigator.clipboard.writeText(`\${@!${memberid.value}}`);
-  message.value?.success("复制成功");
+  ElMessage({
+    message: "复制成功",
+    type: "success",
+  });
 };
 
 const testButton = () => {
@@ -690,7 +857,7 @@ const onSave = (v: string) => {
   console.log(v);
   // 保存到本地存储
   localStorage.setItem("textmsg", v);
-  message.value?.success("保存成功");
+  ElMessage({message:"保存成功",type:"success"})
   // 如果是debug模式,则获取cardjson
   if (opendebug.value) {
     getCardJson();
@@ -706,7 +873,7 @@ if (textmsglocal) {
 const saveGid = () => {
   // gid保存到本地存储
   localStorage.setItem("gid", gid.value);
-  message.value?.success("保存成功");
+  ElMessage({message:"保存成功",type:"success"})
 };
 
 const onjoin = () => {
@@ -723,7 +890,7 @@ if (taskidlocal) {
 const saveTaskid = () => {
   // taskid保存到本地存储
   localStorage.setItem("taskid", taskid.value);
-  message.value?.success("保存成功");
+  ElMessage({message:"保存成功",type:"success"})
 };
 
 // 通过/config.json获取server地址
@@ -773,9 +940,9 @@ const getgidInfo = () => {
         }
 
         getchannel();
-        message.value?.success(data.msg);
+        ElMessage({message:data.msg,type:"success"});
       } else {
-        message.value?.error(data.msg);
+        ElMessage({message:data.msg,type:"error"})
         spinning.value = false;
       }
     })
@@ -796,9 +963,9 @@ const searchUser = () => {
       if (data.ok == true) {
         userlist.value = data.data;
         spinning.value = false;
-        message.value?.success(data.msg);
+        ElMessage({message:data.msg,type:"success"});
       } else {
-        message.value?.error(data.msg);
+        ElMessage({message:data.msg,type:"error"});
         spinning.value = false;
       }
     })
@@ -837,7 +1004,7 @@ const getCardJson = () => {
       console.log(data);
       if (true) {
         cardjson.value = JSON.stringify(data, null, 2);
-        message.value?.success("卡片json获取成功");
+        ElMessage({message:"卡片json获取成功",type:"success"});
       } else {
         message.value?.error(`获取卡片json失败！(${data})`);
       }
@@ -865,7 +1032,7 @@ const sendmsg = (payload: {
       send.value = false;
       if (data.ok === true) {
         if (payload.sendall === true) {
-          message.value.success("任务已创建");
+          ElMessage({message:"任务已创建",type:"success"});
           taskid.value = data.taskid;
           // 写入本地存储
           localStorage.setItem("taskid", data.taskid);
@@ -873,10 +1040,10 @@ const sendmsg = (payload: {
           startPolling();
           p.value = 4;
         } else {
-          message.value.success("发送成功！");
+          ElMessage({message:"发送成功！",type:"success"});
         }
       } else {
-        message.value.error(`发送失败！(${data.msg})`);
+        ElMessage({message:`发送失败！(${data.msg})`,type:"error"});
         if (data.msg == "为了安全性，请点击下方加入服务器按钮，以获取密钥") {
           notKey.value = true;
         }
@@ -885,7 +1052,7 @@ const sendmsg = (payload: {
     .catch((error) => {
       console.error(error);
       sdloading.value = false;
-      message.value.error("发送失败！");
+      ElMessage({message:"发送失败！",type:"error"});
     });
 };
 
@@ -909,17 +1076,17 @@ const sendtext = (payload: {
 
       if (data.ok) {
         if (payload.sendall) {
-          message.value.success("任务已创建");
+          ElMessage({message:"任务已创建",type:"success"});
           taskid.value = data.taskid;
           localStorage.setItem("taskid", data.taskid);
           p.value = 4;
 
           startPolling();   // 启动轮询
         } else {
-          message.value.success("发送成功！");
+          ElMessage({message:"发送成功！",type:"success"});
         }
       } else {
-        message.value.error(`发送失败！(${data.msg})`);
+        ElMessage({message:`发送失败！(${data.msg})`,type:"error"});
         if (data.msg === "为了安全性，请点击下方加入服务器按钮，以获取密钥") {
           notKey.value = true;
         }
@@ -961,7 +1128,7 @@ const sendRichText = (payload: {
       send.value = false;
       if (data.ok === true) {
         if (payload.sendall === true) {
-          message.value.success("任务已创建");
+          ElMessage({message:"任务已创建",type:"success"});
           taskid.value = data.taskid;
           // 写入本地存储
           localStorage.setItem("taskid", data.taskid);
@@ -969,10 +1136,10 @@ const sendRichText = (payload: {
           startPolling();
           p.value = 4;
         } else {
-          message.value.success("发送成功！");
+          ElMessage({message:"发送成功！",type:"success"});
         }
       } else {
-        message.value.error(`发送失败！(${data.msg})`);
+        ElMessage({message:`发送失败！(${data.msg})`,type:"error"});
         if (data.msg == "为了安全性，请点击下方加入服务器按钮，以获取密钥") {
           notKey.value = true;
         }
@@ -1048,6 +1215,30 @@ const back1 = () => {
         }
 };
 
+const mdTheme = ref<Themes | undefined>(undefined);
+const darkMode = ref(false);
+function toggleDarkMode(val: string | number | boolean) {
+  const html = document.documentElement
+  // 将 val 转换为布尔值
+  const isDark = Boolean(val)
+  if (isDark) {
+    html.classList.add('dark')
+    darkMode.value = true
+    mdTheme.value = "dark";
+  } else {
+    html.classList.remove('dark')
+    darkMode.value = false
+    mdTheme.value = "light";
+  }
+  localStorage.setItem('theme', isDark ? 'dark' : 'light')
+}
+// toggleDarkMode(true);
+
+const savedTheme = localStorage.getItem('theme')
+if (savedTheme === 'dark') {
+  toggleDarkMode(true)
+}
+
 // 本地存储读取gid
 const gidlocal = localStorage.getItem("gid");
 if (gidlocal) {
@@ -1058,5 +1249,10 @@ if (gidlocal) {
 </script>
 
 <style scoped>
-
+.alert-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
 </style>
