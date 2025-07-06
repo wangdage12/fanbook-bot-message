@@ -1,7 +1,6 @@
 <template>
   <el-config-provider :locale="zhCn">
   <Message ref="message" />
-  <el-button @click="() => toggleDarkMode(undefined)">切换</el-button>
     <FloatButton @click="haveTool = !haveTool;getgidInfo" :left="20" :bottom="20">
       <template #icon>
         @
@@ -106,6 +105,16 @@
     <el-page-header @back="testButton" >
     <template #content>
       <span class="text-large font-600 mr-3"> 消息推送工具 </span>
+    </template>
+        <template #extra>
+      <el-switch
+        v-model="darkMode"
+        inline-prompt          
+        @change="toggleDarkMode"
+      >
+        <template #active-action>🌙</template>
+        <template #inactive-action>☀️</template>
+      </el-switch>
     </template>
   </el-page-header>
     <el-alert
@@ -1135,13 +1144,10 @@ const back1 = () => {
 import type { Themes } from "md-editor-v3";
 const mdTheme = ref<Themes | undefined>(undefined);
 const darkMode = ref(false);
-function toggleDarkMode(isDark: boolean | undefined = undefined) {
+function toggleDarkMode(val: string | number | boolean) {
   const html = document.documentElement
-  // 如果没有传参，则根据darkMode的值来切换
-  if (typeof isDark !== 'boolean') {
-    isDark = !darkMode.value
-    mdTheme.value = isDark ? "dark" : "light";
-  }
+  // 将 val 转换为布尔值
+  const isDark = Boolean(val)
   if (isDark) {
     html.classList.add('dark')
     darkMode.value = true
