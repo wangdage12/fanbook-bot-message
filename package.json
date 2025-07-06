@@ -40,7 +40,6 @@
     "@vue/tsconfig": "^0.5.1",
     "eslint": "^9.30.1",
     "eslint-plugin-vue": "^9.30.0",
-    "fighting-design": "^1.0.0-alpha.9",
     "jsdom": "^25.0.1",
     "npm-run-all2": "^7.0.1",
     "prettier": "^3.6.2",

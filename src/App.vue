@@ -8,61 +8,100 @@
       </template>
     </FloatButton>
     <!-- 获取提及工具 -->
-  <f-dialog
-    :visible="haveTool"
-    title="获取提及工具"
-    :on-open="getgidInfo"
+<el-dialog
+    v-model="haveTool"
+    title="提及获取工具"
+    @open="getgidInfo"
   >
-<Spin :spinning="spinning" indicator="dynamic-circle">
-  <f-text>服务器ID：</f-text>
-      <f-input
-        v-model="gid"
-        type="text"
-        @blur="getgidInfo"
-        placeholder="请输入服务器ID"
-      />
-          <div v-if="haveGinfo">
-              <h3>提及频道</h3>
-          <text>服务器名称：{{ ginfo.gname }}</text>
-          <br />
-          <Select
-            :options="options"
-            width="75%"
-            placeholder="选择频道"
-            @change="change"
-            v-model="selectedValue"
+    <div v-loading="spinning" element-loading-text="加载中...">
+      <el-form label-width="80px">
+        <el-form-item label="服务器ID" style="white-space: nowrap;">
+          <el-input
+            v-model="gid"
+            placeholder="请输入服务器ID"
+            @blur="getgidInfo"
           />
-          <Button type="primary" @click="copycidAT">复制</Button>
-          <br />
-          <text>频道ID:{{ selectedValue }} </text>
-          <Divider />
+        </el-form-item>
+
+        <template v-if="haveGinfo">
+          <h3>提及频道</h3>
+          <el-form-item label="服务器名称" style="white-space: nowrap;">
+            <span>{{ ginfo.gname }}</span>
+          </el-form-item>
+          <el-form-item label="选择频道">
+            <el-select
+              v-model="selectedValue"
+              placeholder="选择频道"
+              @change="change"
+              style="width: 75%;"
+            >
+              <el-option
+                v-for="opt in options"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+            <el-button type="primary" :disabled="!selectedValue" @click="copycid">复制</el-button>
+          </el-form-item>
+          <el-form-item>
+            <span>频道ID: {{ selectedValue }}</span>
+          </el-form-item>
+          <el-divider />
+
           <h3>提及角色</h3>
-          <Select
-            :options="groups"
-            width="75%"
-            placeholder="选择角色"
-            @change="change"
-            v-model="groupid"
-          />
-          <Button type="primary" @click="copygupid">复制</Button>
-          <br />
-          <text>角色ID:{{ groupid }} </text>
-          <Divider />
+          <el-form-item label="选择角色" style="white-space: nowrap;">
+            <el-select
+              v-model="groupid"
+              placeholder="选择角色"
+              @change="change"
+              style="width: 75%;"
+            >
+              <el-option
+                v-for="grp in groups"
+                :key="grp.value"
+                :label="grp.label"
+                :value="grp.value"
+              />
+            </el-select>
+            <el-button type="primary" :disabled="!groupid" @click="copygupid">复制</el-button>
+          </el-form-item>
+          <el-form-item>
+            <span>角色ID: {{ groupid }}</span>
+          </el-form-item>
+          <el-divider />
+
           <h3>提及成员</h3>
-          <f-text>成员短ID：</f-text>
-          <f-input v-model="shortid" type="text" placeholder="请输入短ID" @blur="searchUser" />
-          <Select
-            :options="userlist"
-            width="75%"
-            placeholder="选择成员"
-            @change="change"
-            v-model="memberid"
-          />
-          <Button type="primary" @click="copymid">复制</Button>
-          <br />
-          <text>成员ID:{{ memberid }} </text>
-        </div></Spin>
-  </f-dialog>
+          <el-form-item label="短ID：">
+            <el-input
+              v-model="shortid"
+              placeholder="请输入短ID"
+              @blur="searchUser"
+            />
+          </el-form-item>
+          <el-form-item label="选择成员" style="white-space: nowrap;">
+            <el-select
+              v-model="memberid"
+              placeholder="选择成员"
+              @change="change"
+              style="width: 75%;"
+            >
+              <el-option
+                v-for="user in userlist"
+                :key="user.value"
+                :label="user.label"
+                :value="user.value"
+              />
+            </el-select>
+            <el-button type="primary" :disabled="!memberid" @click="copymid">复制</el-button>
+          </el-form-item>
+          <el-form-item>
+            <span>成员ID: {{ memberid }}</span>
+          </el-form-item>
+        </template>
+      </el-form>
+    </div>
+  </el-dialog>
   <div v-if="p == 1">
     <el-page-header @back="testButton" >
     <template #content>
@@ -417,7 +456,7 @@
           placeholder="api地址"
           addonBefore="API地址"
         />
-        <f-text>debug：</f-text>
+        <text>debug：</text>
         <Switch v-model="opendebug" @change="handleDebugChange" />
       </Card>
     </div>
@@ -498,7 +537,6 @@ import {
   Space,
   Flex,
   FloatButton,
-  Spin,
 } from "vue-amazing-ui";
 
 import "vue-amazing-ui/css";
@@ -516,6 +554,8 @@ import {
 } from "lucide-vue-next";
 import SendToChannel from "@/components/SendToChannel.vue";
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import { ElMessage } from 'element-plus'
+import 'element-plus/dist/index.css' // 不导入这个的话ElMessage就没有样式
 
 // 自定义 image handler
 function imageHandler(this: any) {
@@ -567,7 +607,7 @@ const img = ref(true);
 const imgurl = ref("");
 const text = ref("");
 const send = ref(false);
-const options = ref([]);
+const options = ref<{ label: string; value: string }[]>([]);
 const selectedValue = ref("");
 const gid = ref("");
 const spinning = ref(false);
@@ -624,7 +664,7 @@ const cardjson = ref(""); // 存储服务器构建好的卡片json
 
 const groups = ref<{ label: string; value: string }[]>([]); // 服务器角色列表
 const groupid = ref(""); // 选中的角色id
-const userlist = ref([]); // 服务器成员列表
+const userlist = ref<{ label: string; value: string }[]>([]); // 服务器成员列表
 const memberid = ref(""); // 选中的成员id
 // 是否打开提及工具
 const haveTool = ref(false);
@@ -690,23 +730,28 @@ const onconsole = () => {
 const haveGinfo = ref(false);
 
 const copycid = () => {
-  navigator.clipboard.writeText(selectedValue.value);
-  message.value?.success("复制成功");
-};
-const copycidAT = () => {
-  // 复制值时需要${#selectedValue.value}格式
+  // 复制频道ID时需要${#selectedValue.value}格式
   navigator.clipboard.writeText(`\${#${selectedValue.value}}`);
-  message.value?.success("复制成功");
+  ElMessage({
+    message: "复制成功",
+    type: "success",
+  });
 };
 const copygupid = () => {
   // 复制角色ID时需要${@&groupid.value}格式
   navigator.clipboard.writeText(`\${@&${groupid.value}}`);
-  message.value?.success("复制成功");
+  ElMessage({
+    message: "复制成功",
+    type: "success",
+  });
 };
 const copymid = () => {
   // 复制成员ID时需要${@!memberid.value}格式
   navigator.clipboard.writeText(`\${@!${memberid.value}}`);
-  message.value?.success("复制成功");
+  ElMessage({
+    message: "复制成功",
+    type: "success",
+  });
 };
 
 const testButton = () => {

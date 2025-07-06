@@ -1,107 +1,154 @@
 <template>
-  <f-dialog
-    v-model:visible="localVisible"
+  <el-dialog
+    v-model="localVisible"
     title="发送到频道"
-    :on-open="onOpen"
+    @open="onOpen"
+    width="420px"
   >
-    <Spin :spinning="spinning" indicator="dynamic-circle">
-      <f-text>服务器ID：</f-text>
-      <f-input
-        v-model="gid"
-        type="text"
-        @blur="onBlur"
-        placeholder="请输入服务器ID"
-      />
-      <Select
-        :options="options"
-        width="200px"
-        placeholder="选择频道"
-        @change="change"
+    <!-- 加载遮罩 -->
+    <div v-loading="spinning">
+      <!-- 服务器 ID -->
+      <div class="field">
+        <span class="label">服务器ID：</span>
+        <el-input
+          v-model="gid"
+          placeholder="请输入服务器ID"
+          @blur="onBlur"
+          class="w-200"
+        />
+      </div>
+
+      <!-- 频道选择 -->
+      <el-select
         v-model="selectedValue"
-      />
-    </Spin>
-    <Tooltip tooltip="为了安全所生成的密钥，若没有请服务器主找开发者获取">
-      <Input
-        v-model:value="key"
-        password
-        placeholder="请输入服务器安全密钥"
-        addonBefore="服务器安全密钥"
-      />
-    </Tooltip>
-    <br />
-    <f-text>推送到频道中所有成员的私信：</f-text>
-    <Switch v-model="sendall" />
+        placeholder="选择频道"
+        class="w-200 field"
+        @change="handleChange"
+      >
+        <el-option
+          v-for="item in options"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
+        />
+      </el-select>
+
+      <!-- 安全密钥 -->
+      <el-tooltip
+        content="为了安全所生成的密钥，若没有请服务器主找开发者获取"
+        placement="top"
+      >
+        <el-input
+          v-model="key"
+          type="password"
+          placeholder="请输入服务器安全密钥"
+          class="field"
+        >
+          <template #prepend>服务器安全密钥</template>
+        </el-input>
+      </el-tooltip>
+
+      <!-- 推送到全部成员私信 -->
+      <div class="field">
+        <span class="label">推送到频道中所有成员的私信：</span>
+        <el-switch v-model="sendall" />
+      </div>
+    </div>
+
+    <!-- 底部按钮 -->
     <template #footer>
-      <f-button
+      <el-button
         type="primary"
-        :on-click="handleSend"
+        @click="handleSend"
         :disabled="disabled"
         :loading="loading"
       >
         发送到频道
-      </f-button>
+      </el-button>
     </template>
-  </f-dialog>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, defineEmits, defineProps } from "vue";
-import { Input, Switch, Select, Spin, Tooltip } from "vue-amazing-ui";
-const props = defineProps({
-  visible: Boolean, // 控制弹窗的显示与隐藏
-  options: Array, // 频道列表
-  spinning: Boolean, // 加载状态
-  loading: Boolean, // 发送状态
-  onOpen: Function, // 打开弹窗时的逻辑（如 getchannel）
-  gid: { type: String, default: "" }, // 新增，服务器ID要从父组件传入，否则无法自动获取
-});
+import { ref, watch, defineProps, defineEmits } from 'vue'
+import type { PropType } from 'vue'
 
-const emit = defineEmits(["update:visible", "send"]);
-
-const localVisible = ref(props.visible);
-watch(
-  () => props.visible,
-  (val) => {
-    localVisible.value = val;
-  },
-);
-watch(localVisible, (val) => {
-  emit("update:visible", val);
-});
-
-// gid 初始值由 props.gid 决定
-const gid = ref(props.gid);
-watch(
-  () => props.gid,
-  (val) => {
-    gid.value = val;
-  },
-);
-
-const key = ref("");
-const selectedValue = ref("");
-const sendall = ref(false);
-const disabled = ref(true);
-
-function onBlur() {
-  props.onOpen?.();
+interface Option {
+  label: string
+  value: string | number
 }
 
-const change = (value: string) => {
-  selectedValue.value = value;
-  if (selectedValue.value === "") {
-    disabled.value = true;
-  } else {
-    disabled.value = false;
-  }
-};
+const props = defineProps({
+  visible: Boolean,
+  options: {
+    type: Array as PropType<Option[]>,
+    default: () => [],
+  },
+  spinning: Boolean,
+  loading: Boolean,
+  onOpen: {
+    type: Function as PropType<() => any>,
+    required: false,
+  },
+  gid: {
+    type: String as PropType<string>,
+    default: '',
+  },
+})
 
+const emit = defineEmits(['update:visible', 'send'])
+
+// 弹窗显隐
+const localVisible = ref(props.visible)
+watch(
+  () => props.visible,
+  (val) => (localVisible.value = val),
+)
+watch(localVisible, (val) => emit('update:visible', val))
+
+// 服务器 ID
+const gid = ref(props.gid)
+watch(
+  () => props.gid,
+  (val) => (gid.value = val),
+)
+
+// 其余表单数据
+const key = ref('')
+const selectedValue = ref('')
+const sendall = ref(false)
+const disabled = ref(true)
+
+// 服务器 ID 失焦，向父级请求频道列表
+function onBlur() {
+  props.onOpen?.()
+}
+
+// 频道下拉框变更
+function handleChange(val: string | number) {
+  selectedValue.value = String(val)
+  disabled.value = selectedValue.value === ''
+}
+
+// 点击发送
 function handleSend() {
-  emit("send", {
+  emit('send', {
     gid: gid.value,
     key: key.value,
     channel: selectedValue.value,
     sendall: sendall.value,
-  });
+  })
 }
 </script>
+
+<style scoped>
+.w-200 {
+  width: 200px;
+}
+.field {
+  margin-bottom: 12px;
+}
+.label {
+  margin-right: 4px;
+}
+</style>
