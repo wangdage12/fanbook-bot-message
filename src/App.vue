@@ -1,5 +1,7 @@
 <template>
+  <el-config-provider :locale="zhCn">
   <Message ref="message" />
+  <el-button @click="() => toggleDarkMode(undefined)">切换</el-button>
     <FloatButton @click="haveTool = !haveTool;getgidInfo" :left="20" :bottom="20">
       <template #icon>
         @
@@ -62,80 +64,96 @@
         </div></Spin>
   </f-dialog>
   <div v-if="p == 1">
-    <f-page-header :on-back="testButton" title="bot工具" />
-    <Alert
-      message="请不要滥用这些功能，更不要使用发送消息功能骚扰他人和违规使用，服务器主请保管好安全密钥，以免造成不必要的麻烦。如果你有任何想法或者建议，欢迎前往服务器反馈"
-      type="info"
+    <el-page-header @back="testButton" >
+    <template #content>
+      <span class="text-large font-600 mr-3"> 消息推送工具 </span>
+    </template>
+  </el-page-header>
+    <el-alert
+      title=""
+      type="primary"
     >
-      <template #actions>
-        <Space vertical gap="small" align="center">
-          <Button size="small" type="primary" @click="openurl"
-            >加入服务器</Button
-          >
-        </Space>
+      <template #default>
+        <div class="alert-content">
+        <span>请不要滥用这些功能，更不要使用发送消息功能骚扰他人和违规使用，服务器主请保管好安全密钥，以免造成不必要的麻烦。如果你有任何想法或者建议，欢迎前往服务器反馈</span>
+        
+        <el-button  type="primary" @click="openurl" link>加入服务器</el-button>
+      </div>
       </template>
-    </Alert>
+    </el-alert>
     <div v-if="opendebug">
-      <Alert message="已开启调试模式" type="warning">
-        <template #actions>
-          <Button size="small" type="text" @click="closeDebug"
-            >关闭调试模式</Button
-          >
+      <el-alert title="" type="warning">
+        <template #default>
+          <div class="alert-content">
+            <el-button type="warning" @click="closeDebug" link>调试模式已开启，点击关闭调试模式</el-button>
+          </div>
         </template>
-      </Alert>
+      </el-alert>
     </div>
     <!-- 和上面要有间隔 -->
     <div :style="{ padding: '5px' }"></div>
-    <Card hoverable title="消息推送工具">
+    <el-card shadow="hover">
+          <template #header>
+      <div class="card-header">
+        <span>消息推送工具</span>
+      </div>
+    </template>
       <Flex wrap="wrap" style="width: 100%; max-width: 650px">
-        <Button type="primary" @click="p = 3" ghost>
+        <el-button type="primary" @click="p = 3" plain>
           <template #icon>
             <SendHorizontal :size="23" :style="{ fill: 'none' }" />
           </template>
           发送文本消息
-        </Button>
-        <Button type="primary" @click="p = 2" ghost>
+        </el-button>
+        <el-button type="primary" @click="p = 2" plain>
           <template #icon>
             <MessageSquareCode :size="23" :style="{ fill: 'none' }" />
           </template>
           发送消息卡片
-        </Button>
-        <Button type="primary" @click="p = 5" ghost>
+        </el-button>
+        <el-button type="primary" @click="p = 5" plain>
           <template #icon>
             <LetterText :size="23" :style="{ fill: 'none' }" />
           </template>
           发送富文本
-        </Button>
+        </el-button>
         <!-- task为空就不显示 -->
         <div v-if="taskid.length != 0">
-          <Button type="primary" @click="usergettask" ghost>
+          <el-button type="primary" @click="usergettask" plain>
             <template #icon>
               <Logs :size="23" :style="{ fill: 'none' }" />
             </template>
             查看批量进程
-          </Button>
+          </el-button>
         </div>
       </Flex>
-    </Card>
+    </el-card>
   </div>
   <div v-if="p == 2">
-    <f-page-header :on-back="back1" title="发送消息卡片" />
-    <f-alert :alert-list="alertList1" simple title="注意：" type="warning" />
+    <el-page-header @back="back1" >
+      <template #content>
+        <span class="text-large font-600 mr-3"> 发送消息卡片 </span>
+      </template>
+    </el-page-header>
+    <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
     <!-- <Alert message="提示：点击色块快速选择颜色" type="info" /> -->
     <!-- 最上方和最右边留空隙 -->
     <div style="padding-left: 10px; padding-right: 10px">
       <div :style="{ padding: '5px' }"></div>
       <h3>标题设置</h3>
-      <Input
-        v-model:value="bttext"
+      <el-input
+        v-model="bttext"
         maxlength="50"
-        showCount="true"
+
         placeholder="卡片标题"
-        addonBefore="卡片标题"
         :style="{ padding: '5px' }"
-      />
+      >
+        <template #prepend>
+          <span>卡片标题</span>
+        </template>
+      </el-input>
       <!-- <div :style="{ padding: '5px' }"></div> -->
-      <f-text>卡片标题背景色从：</f-text>
+      <text>卡片标题背景色从：</text>
       <br />
       <Space :width="150">
         <ColorPicker
@@ -145,21 +163,21 @@
         />
       </Space>
       <br />
-      <f-text>到：</f-text>
+      <text>到：</text>
       <br />
       <Space :width="150">
         <ColorPicker v-model:value="color2" :showAlpha="false" />
       </Space>
       <br />
       <div :style="{ padding: '5px' }"></div>
-      <f-text>卡片标题文本颜色：</f-text>
+      <text>卡片标题文本颜色：</text>
       <br />
       <Space :width="150">
         <ColorPicker v-model:value="color3" :showAlpha="false" />
       </Space>
       <br />
       <div :style="{ padding: '5px' }"></div>
-      <f-text>标题预览：</f-text>
+      <text>标题预览：</text>
       <!-- 创建一个预览渐变色块，里面显示标题 -->
       <br />
       <div
@@ -179,29 +197,35 @@
       <Divider />
       <h3>按钮设置</h3>
       <div :style="{ padding: '5px' }"></div>
-      <f-text>启用按钮：</f-text>
+      <text>启用按钮：</text>
       <Switch v-model="openbotton" />
       <div v-if="openbotton">
         <div :style="{ padding: '5px' }"></div>
         <!-- <f-text>按钮文本：</f-text> -->
-        <Input
-          v-model:value="bottontext"
+        <el-input
+          v-model="bottontext"
           maxlength="10"
           showCount="true"
           placeholder="按钮文本"
-          addonBefore="按钮文本"
-        />
+        >
+          <template #prepend>
+            <span>按钮文本</span>
+          </template>
+        </el-input>
         <div :style="{ padding: '5px' }"></div>
         <!-- <f-text>按钮链接：</f-text> -->
-        <Input
-          v-model:value="bottonurl"
+        <el-input
+          v-model="bottonurl"
           maxlength="200"
           showCount="true"
           placeholder="按钮链接"
-          addonBefore="按钮链接"
-        />
+        >
+          <template #prepend>
+            <span>按钮链接</span>
+          </template>
+        </el-input>
         <div :style="{ padding: '5px' }"></div>
-        <f-text>按钮颜色：</f-text>
+        <text>按钮颜色：</text>
         <br />
         <Space :width="150">
           <ColorPicker v-model:value="bottoncolor" :showAlpha="false" />
@@ -223,6 +247,7 @@
         :toolbars="toolbars"
         noUploadImg
         @onSave="onSave"
+        :theme="mdTheme"
       />
       <!-- <Textarea
       v-model:value="text"
@@ -265,10 +290,14 @@
     </div>
   </div>
   <div v-if="p == 3">
-    <f-page-header :on-back="back1" title="发送文本消息" />
-    <f-alert :alert-list="alertList1" simple title="注意：" type="warning" />
+    <el-page-header @back="back1" >
+      <template #content>
+        <span class="text-large font-600 mr-3"> 发送文本消息 </span>
+      </template>
+    </el-page-header>
+    <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
     <v-text>文本：</v-text>
-    <Textarea v-model:value.lazy="textmsg" />
+    <el-input v-model="textmsg" type="textarea" />
     <Button type="primary" @click="send = true">发送</Button>
 
     <SendToChannel
@@ -294,27 +323,31 @@
     </div>
   </div>
   <div v-if="p == 4">
-    <f-page-header :on-back="back1" title="消息推送进程信息" />
-    <Alert
-      message="提示：进程在云服务器运行，你可以随时退出，之后点击首页的查看批量进程即可回到此页面"
-      type="info"
+    <el-page-header @back="back1" >
+      <template #content>
+        <span class="text-large font-600 mr-3"> 消息推送进程信息 </span>
+      </template>
+    </el-page-header>
+    <el-Alert
+      title="提示：进程在云服务器运行，你可以随时退出，之后点击首页的查看批量进程即可回到此页面"
+      type="primary"
     />
-    <Descriptions title="进程信息" bordered>
-      <DescriptionsItem label="成员数量">{{ usernum }}</DescriptionsItem>
-      <DescriptionsItem label="成功数量" :contentStyle="{ color: '#52c41a' }">{{
-        successnum
-      }}</DescriptionsItem>
-      <DescriptionsItem label="失败数量" :contentStyle="{ color: '#ff4d4f' }">{{
-        failnum
-      }}</DescriptionsItem>
-      <DescriptionsItem label="创建时间">{{ Ttime }}</DescriptionsItem>
-      <DescriptionsItem label="进程id" :span="2">{{ taskid }}</DescriptionsItem>
-      <DescriptionsItem label="状态" :span="3">
-        <Badge :status="taskrun ? 'processing' : 'success'" :text="status" />
-      </DescriptionsItem>
-      <DescriptionsItem label="剩余时间">{{ time_remaining }}</DescriptionsItem>
-      <DescriptionsItem label="完成时间">{{ endtime }}</DescriptionsItem>
-    </Descriptions>
+<el-descriptions title="进程信息" border>
+  <el-descriptions-item label="成员数量">{{ usernum }}</el-descriptions-item>
+  <el-descriptions-item label="成功数量">
+    <span style="color: #52c41a">{{ successnum }}</span>
+  </el-descriptions-item>
+  <el-descriptions-item label="失败数量">
+    <span style="color: #ff4d4f">{{ failnum }}</span>
+  </el-descriptions-item>
+  <el-descriptions-item label="创建时间">{{ Ttime }}</el-descriptions-item>
+  <el-descriptions-item label="进程id" :span="2">{{ taskid }}</el-descriptions-item>
+  <el-descriptions-item label="状态" :span="3">
+    <el-badge :value="status" :type="taskrun ? 'primary' : 'success'" />
+  </el-descriptions-item>
+  <el-descriptions-item label="剩余时间">{{ time_remaining }}</el-descriptions-item>
+  <el-descriptions-item label="完成时间">{{ endtime }}</el-descriptions-item>
+</el-descriptions>
     <Progress
       :stroke-width="10"
       :stroke-color="{
@@ -326,7 +359,11 @@
     />
   </div>
   <div v-if="p == 100">
-    <f-page-header :on-back="back1" title="测试工具" />
+    <el-page-header @back="back1" >
+      <template #content>
+        <span class="text-large font-600 mr-3"> 测试工具 </span>
+      </template>
+    </el-page-header>
 
     <div style="display: flex; flex-wrap: wrap; gap: 16px">
       <Card hoverable title="修改默认服务器id" :width="300">
@@ -386,16 +423,22 @@
     </div>
   </div>
   <div v-if="p == 5">
-    <f-page-header :on-back="back1" title="发送富文本" />
-    <f-alert :alert-list="alertList1" simple title="注意：" type="warning" />
+    <el-page-header @back="back1" >
+      <template #content>
+        <span class="text-large font-600 mr-3"> 发送富文本 </span>
+      </template>
+    </el-page-header>
+    <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
     <div :style="{ padding: '7px' }">
-      <Input
-        v-model:value="bttext"
+      <el-input
+        v-model="bttext"
         maxlength="50"
-        showCount="true"
         placeholder="标题"
-        addonBefore="标题"
-      />
+      >
+        <template #prepend>
+          <span>标题</span>
+        </template>
+      </el-input>
     </div>
     <QuillEditor
       theme="snow"
@@ -436,23 +479,18 @@
         @send="sendRichText"
       />
     </div>
-  </div>
+  </div></el-config-provider>
 </template>
 
 <script setup lang="ts">
 import {
-  Alert,
   Button,
   Card,
   Input,
   Switch,
-  Textarea,
   Divider,
   Select,
   Message,
-  Descriptions,
-  DescriptionsItem,
-  Badge,
   Progress,
   Result,
   Tag,
@@ -477,6 +515,7 @@ import {
   Logs,
 } from "lucide-vue-next";
 import SendToChannel from "@/components/SendToChannel.vue";
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 // 自定义 image handler
 function imageHandler(this: any) {
@@ -1048,6 +1087,29 @@ const back1 = () => {
         }
 };
 
+import type { Themes } from "md-editor-v3";
+const mdTheme = ref<Themes | undefined>(undefined);
+const darkMode = ref(false);
+function toggleDarkMode(isDark: boolean | undefined = undefined) {
+  const html = document.documentElement
+  // 如果没有传参，则根据darkMode的值来切换
+  if (typeof isDark !== 'boolean') {
+    isDark = !darkMode.value
+    mdTheme.value = isDark ? "dark" : "light";
+  }
+  if (isDark) {
+    html.classList.add('dark')
+    darkMode.value = true
+    mdTheme.value = "dark";
+  } else {
+    html.classList.remove('dark')
+    darkMode.value = false
+    mdTheme.value = "light";
+  }
+}
+// toggleDarkMode(true);
+
+
 // 本地存储读取gid
 const gidlocal = localStorage.getItem("gid");
 if (gidlocal) {
@@ -1058,5 +1120,10 @@ if (gidlocal) {
 </script>
 
 <style scoped>
-
+.alert-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
 </style>
