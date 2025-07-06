@@ -1,6 +1,5 @@
 <template>
   <el-config-provider :locale="zhCn">
-  <Message ref="message" />
     <FloatButton @click="haveTool = !haveTool;getgidInfo" :left="20" :bottom="20">
       <template #icon>
         @
@@ -21,12 +20,11 @@
             @blur="getgidInfo"
           />
         </el-form-item>
-
         <template v-if="haveGinfo">
-          <h3>提及频道</h3>
-          <el-form-item label="服务器名称" style="white-space: nowrap;">
+                    <el-form-item label="服务器名称" style="white-space: nowrap;">
             <span>{{ ginfo.gname }}</span>
           </el-form-item>
+          <h3>提及频道</h3>
           <el-form-item label="选择频道">
             <el-select
               v-model="selectedValue"
@@ -182,6 +180,16 @@
       <template #content>
         <span class="text-large font-600 mr-3"> 发送消息卡片 </span>
       </template>
+              <template #extra>
+      <el-switch
+        v-model="darkMode"
+        inline-prompt          
+        @change="toggleDarkMode"
+      >
+        <template #active-action>🌙</template>
+        <template #inactive-action>☀️</template>
+      </el-switch>
+    </template>
     </el-page-header>
     <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
     <!-- <Alert message="提示：点击色块快速选择颜色" type="info" /> -->
@@ -342,6 +350,16 @@
       <template #content>
         <span class="text-large font-600 mr-3"> 发送文本消息 </span>
       </template>
+              <template #extra>
+      <el-switch
+        v-model="darkMode"
+        inline-prompt          
+        @change="toggleDarkMode"
+      >
+        <template #active-action>🌙</template>
+        <template #inactive-action>☀️</template>
+      </el-switch>
+    </template>
     </el-page-header>
     <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
     <v-text>文本：</v-text>
@@ -375,6 +393,16 @@
       <template #content>
         <span class="text-large font-600 mr-3"> 消息推送进程信息 </span>
       </template>
+              <template #extra>
+      <el-switch
+        v-model="darkMode"
+        inline-prompt          
+        @change="toggleDarkMode"
+      >
+        <template #active-action>🌙</template>
+        <template #inactive-action>☀️</template>
+      </el-switch>
+    </template>
     </el-page-header>
     <el-Alert
       title="提示：进程在云服务器运行，你可以随时退出，之后点击首页的查看批量进程即可回到此页面"
@@ -407,67 +435,106 @@
     />
   </div>
   <div v-if="p == 100">
-    <el-page-header @back="back1" >
+    <el-page-header @back="back1">
       <template #content>
         <span class="text-large font-600 mr-3"> 测试工具 </span>
       </template>
+      <template #extra>
+        <el-switch
+          v-model="darkMode"
+          inline-prompt
+          @change="toggleDarkMode"
+        >
+          <template #active-action>🌙</template>
+          <template #inactive-action>☀️</template>
+        </el-switch>
+      </template>
     </el-page-header>
-
     <div style="display: flex; flex-wrap: wrap; gap: 16px">
-      <Card hoverable title="修改默认服务器id" :width="300">
-        <Input
-          v-model:value="gid"
+      <!-- 修改默认服务器id -->
+      <el-card shadow="hover" style="width: 300px;">
+        <template #header>
+          <span>修改默认服务器id</span>
+        </template>
+        <el-input
+          v-model="gid"
           placeholder="服务器id"
-          @enter="saveGid"
-          width="75%"
+          style="width: 75%; margin-bottom: 8px"
+          @keyup.enter="saveGid"
         />
-        <Button type="primary" @click="saveGid">保存</Button>
-      </Card>
+        <el-button type="primary" @click="saveGid">保存</el-button>
+      </el-card>
 
-      <Card hoverable title="修改默认进程id" :width="300">
-        <Input
-          v-model:value="taskid"
+      <!-- 修改默认进程id -->
+      <el-card shadow="hover" style="width: 300px;">
+        <template #header>
+          <span>修改默认进程id</span>
+        </template>
+        <el-input
+          v-model="taskid"
           placeholder="进程id"
-          @enter="saveTaskid"
-          width="75%"
+          style="width: 75%; margin-bottom: 8px"
+          @keyup.enter="saveTaskid"
         />
-        <Button type="primary" @click="saveTaskid">保存</Button>
-      </Card>
-      <Card hoverable title="获取服务器信息" :width="300">
-        <div v-if="haveGinfo">
-          <text>服务器名称：{{ ginfo.gname }}</text>
-          <Tag color="green" v-if="ginfo.white">可信服务器</Tag>
-          <Tag color="red" v-if="ginfo.black">黑名单服务器</Tag>
-          <Tag color="cyan" v-if="ginfo.free">免费使用</Tag>
-          <Select
-            :options="options"
-            width="75%"
-            placeholder="选择频道"
-            @change="change"
-            v-model="selectedValue"
-          />
-          <Button type="primary" @click="copycid">复制</Button>
-          <br />
-          <text>频道ID:{{ selectedValue }} </text>
-        </div>
+        <el-button type="primary" @click="saveTaskid">保存</el-button>
+      </el-card>
 
-        <Input
-          v-model:value="gid"
+      <!-- 获取服务器信息 -->
+      <el-card shadow="hover" style="width: 300px;">
+        <template #header>
+          <span>获取服务器信息</span>
+        </template>
+        <div v-if="haveGinfo">
+          <div style="margin-bottom: 8px;">
+            <span>服务器名称：{{ ginfo.gname }}</span>
+          </div>
+          <el-tag type="success" v-if="ginfo.white" style="margin-right: 4px;">可信服务器</el-tag>
+          <el-tag type="danger" v-if="ginfo.black" style="margin-right: 4px;">黑名单服务器</el-tag>
+          <el-tag type="info" v-if="ginfo.free" style="margin-right: 4px;">免费使用</el-tag>
+          <el-select
+            v-model="selectedValue"
+            :options="options"
+            placeholder="选择频道"
+            style="width: 75%; margin: 8px 0"
+            @change="change"
+            filterable
+          >
+            <el-option
+              v-for="opt in options"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+          <el-button type="primary" @click="copycid" style="margin-bottom: 8px;">复制</el-button>
+          <div>
+            <span>频道ID: {{ selectedValue }}</span>
+          </div>
+        </div>
+        <el-input
+          v-model="gid"
           placeholder="服务器id"
-          @enter="getgidInfo"
-          width="75%"
+          style="width: 75%; margin: 8px 0"
+          @keyup.enter="getgidInfo"
         />
-        <Button type="primary" @click="getgidInfo">获取</Button>
-      </Card>
-      <Card hoverable title="debug" :width="300">
-        <Input
-          v-model:value="apiuri"
+        <el-button type="primary" @click="getgidInfo">获取</el-button>
+      </el-card>
+
+      <!-- debug -->
+      <el-card shadow="hover" style="width: 300px;">
+        <template #header>
+          <span>debug</span>
+        </template>
+        <el-input
+          v-model="apiuri"
           placeholder="api地址"
-          addonBefore="API地址"
-        />
-        <text>debug：</text>
-        <Switch v-model="opendebug" @change="handleDebugChange" />
-      </Card>
+          style="margin-bottom: 8px"
+        >
+          <template #prepend>API地址</template>
+        </el-input>
+        <span style="margin-right: 8px;">debug：</span>
+        <el-switch v-model="opendebug" @change="handleDebugChange" />
+      </el-card>
     </div>
   </div>
   <div v-if="p == 5">
@@ -475,6 +542,16 @@
       <template #content>
         <span class="text-large font-600 mr-3"> 发送富文本 </span>
       </template>
+              <template #extra>
+      <el-switch
+        v-model="darkMode"
+        inline-prompt          
+        @change="toggleDarkMode"
+      >
+        <template #active-action>🌙</template>
+        <template #inactive-action>☀️</template>
+      </el-switch>
+    </template>
     </el-page-header>
     <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
     <div :style="{ padding: '7px' }">
@@ -538,7 +615,6 @@ import {
   Switch,
   Divider,
   Select,
-  Message,
   Progress,
   Result,
   Tag,
@@ -565,6 +641,7 @@ import SendToChannel from "@/components/SendToChannel.vue";
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { ElMessage } from 'element-plus'
 import 'element-plus/dist/index.css' // 不导入这个的话ElMessage就没有样式
+import type { Themes } from "md-editor-v3";
 
 // 自定义 image handler
 function imageHandler(this: any) {
@@ -681,11 +758,12 @@ const haveTool = ref(false);
 let taskTimer: number | null = null;   // 统一保存定时器 ID
 let isFetching = false;                // 请求锁（防并发）
 
-const handleDebugChange = (value: boolean) => {
+const handleDebugChange = (val: string | number | boolean) => {
+  const value = Boolean(val);
   // 保存到本地存储
   localStorage.setItem("debug", String(value));
-  message.value?.success("保存成功");
-  if (opendebug.value) {
+  ElMessage({message:"保存成功",type:"success"})
+  if (value) {
     eruda.init();
     console.log("调试模式已开启");
   } else {
@@ -709,7 +787,7 @@ const closeDebug = () => {
   opendebug.value = false;
   localStorage.setItem("debug", "false");
   eruda.destroy();
-  message.value?.success("调试模式已关闭");
+  ElMessage({message:"调试模式已关闭",type:"success"});
   console.log("调试模式已关闭");
 };
 
@@ -783,7 +861,7 @@ const onSave = (v: string) => {
   console.log(v);
   // 保存到本地存储
   localStorage.setItem("textmsg", v);
-  message.value?.success("保存成功");
+  ElMessage({message:"保存成功",type:"success"})
   // 如果是debug模式,则获取cardjson
   if (opendebug.value) {
     getCardJson();
@@ -799,7 +877,7 @@ if (textmsglocal) {
 const saveGid = () => {
   // gid保存到本地存储
   localStorage.setItem("gid", gid.value);
-  message.value?.success("保存成功");
+  ElMessage({message:"保存成功",type:"success"})
 };
 
 const onjoin = () => {
@@ -816,7 +894,7 @@ if (taskidlocal) {
 const saveTaskid = () => {
   // taskid保存到本地存储
   localStorage.setItem("taskid", taskid.value);
-  message.value?.success("保存成功");
+  ElMessage({message:"保存成功",type:"success"})
 };
 
 // 通过/config.json获取server地址
@@ -866,9 +944,9 @@ const getgidInfo = () => {
         }
 
         getchannel();
-        message.value?.success(data.msg);
+        ElMessage({message:data.msg,type:"success"});
       } else {
-        message.value?.error(data.msg);
+        ElMessage({message:data.msg,type:"error"})
         spinning.value = false;
       }
     })
@@ -889,9 +967,9 @@ const searchUser = () => {
       if (data.ok == true) {
         userlist.value = data.data;
         spinning.value = false;
-        message.value?.success(data.msg);
+        ElMessage({message:data.msg,type:"success"});
       } else {
-        message.value?.error(data.msg);
+        ElMessage({message:data.msg,type:"error"});
         spinning.value = false;
       }
     })
@@ -930,7 +1008,7 @@ const getCardJson = () => {
       console.log(data);
       if (true) {
         cardjson.value = JSON.stringify(data, null, 2);
-        message.value?.success("卡片json获取成功");
+        ElMessage({message:"卡片json获取成功",type:"success"});
       } else {
         message.value?.error(`获取卡片json失败！(${data})`);
       }
@@ -958,7 +1036,7 @@ const sendmsg = (payload: {
       send.value = false;
       if (data.ok === true) {
         if (payload.sendall === true) {
-          message.value.success("任务已创建");
+          ElMessage({message:"任务已创建",type:"success"});
           taskid.value = data.taskid;
           // 写入本地存储
           localStorage.setItem("taskid", data.taskid);
@@ -966,10 +1044,10 @@ const sendmsg = (payload: {
           startPolling();
           p.value = 4;
         } else {
-          message.value.success("发送成功！");
+          ElMessage({message:"发送成功！",type:"success"});
         }
       } else {
-        message.value.error(`发送失败！(${data.msg})`);
+        ElMessage({message:`发送失败！(${data.msg})`,type:"error"});
         if (data.msg == "为了安全性，请点击下方加入服务器按钮，以获取密钥") {
           notKey.value = true;
         }
@@ -978,7 +1056,7 @@ const sendmsg = (payload: {
     .catch((error) => {
       console.error(error);
       sdloading.value = false;
-      message.value.error("发送失败！");
+      ElMessage({message:"发送失败！",type:"error"});
     });
 };
 
@@ -1002,17 +1080,17 @@ const sendtext = (payload: {
 
       if (data.ok) {
         if (payload.sendall) {
-          message.value.success("任务已创建");
+          ElMessage({message:"任务已创建",type:"success"});
           taskid.value = data.taskid;
           localStorage.setItem("taskid", data.taskid);
           p.value = 4;
 
           startPolling();   // 启动轮询
         } else {
-          message.value.success("发送成功！");
+          ElMessage({message:"发送成功！",type:"success"});
         }
       } else {
-        message.value.error(`发送失败！(${data.msg})`);
+        ElMessage({message:`发送失败！(${data.msg})`,type:"error"});
         if (data.msg === "为了安全性，请点击下方加入服务器按钮，以获取密钥") {
           notKey.value = true;
         }
@@ -1054,7 +1132,7 @@ const sendRichText = (payload: {
       send.value = false;
       if (data.ok === true) {
         if (payload.sendall === true) {
-          message.value.success("任务已创建");
+          ElMessage({message:"任务已创建",type:"success"});
           taskid.value = data.taskid;
           // 写入本地存储
           localStorage.setItem("taskid", data.taskid);
@@ -1062,10 +1140,10 @@ const sendRichText = (payload: {
           startPolling();
           p.value = 4;
         } else {
-          message.value.success("发送成功！");
+          ElMessage({message:"发送成功！",type:"success"});
         }
       } else {
-        message.value.error(`发送失败！(${data.msg})`);
+        ElMessage({message:`发送失败！(${data.msg})`,type:"error"});
         if (data.msg == "为了安全性，请点击下方加入服务器按钮，以获取密钥") {
           notKey.value = true;
         }
@@ -1141,7 +1219,6 @@ const back1 = () => {
         }
 };
 
-import type { Themes } from "md-editor-v3";
 const mdTheme = ref<Themes | undefined>(undefined);
 const darkMode = ref(false);
 function toggleDarkMode(val: string | number | boolean) {
@@ -1157,9 +1234,14 @@ function toggleDarkMode(val: string | number | boolean) {
     darkMode.value = false
     mdTheme.value = "light";
   }
+  localStorage.setItem('theme', isDark ? 'dark' : 'light')
 }
 // toggleDarkMode(true);
 
+const savedTheme = localStorage.getItem('theme')
+if (savedTheme === 'dark') {
+  toggleDarkMode(true)
+}
 
 // 本地存储读取gid
 const gidlocal = localStorage.getItem("gid");
