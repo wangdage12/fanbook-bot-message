@@ -323,7 +323,10 @@
           style="height: 400px; margin-top: 20px"
         />
       </div>
-      <el-button type="primary" @click="send = true">发送</el-button>
+      <el-button type="primary" @click="send = true" style="margin-top: 20px">
+        发送
+      </el-button>
+
     </div>
     <SendToChannel
       v-model:visible="send"
@@ -364,9 +367,12 @@
     </template>
     </el-page-header>
     <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
+    <div :style="{ padding: '5px' }"></div>
     <v-text>文本：</v-text>
     <el-input v-model="textmsg" type="textarea" />
-    <el-button type="primary" @click="send = true">发送</el-button>
+      <el-button type="primary" @click="send = true" style="margin-top: 20px">
+        发送
+      </el-button>
 
     <SendToChannel
       v-model:visible="send"
@@ -594,8 +600,9 @@
           :onChange="VSonEditorUpdate"
         />
       </div>
-
-      <el-button type="primary" @click="send = true">发送</el-button>
+      <el-button type="primary" @click="send = true" style="margin-top: 20px">
+        发送
+      </el-button>
 
       <SendToChannel
         v-model:visible="send"
@@ -1307,18 +1314,7 @@ if (gidlocal) {
   align-items: center;
   width: 100%;
 }
-.ql-divider::before {
-  content: "⎯";
-  display: inline-block;
-  font-size: 16px;
-  color: #333;
-}
-@media screen and (max-width: 768px) {
-  .el-dialog {
-    width: 95% !important;
-    max-width: none !important;
-  }
-}
+
 
 
 </style>
