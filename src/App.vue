@@ -10,6 +10,8 @@
     v-model="haveTool"
     title="提及获取工具"
     @open="getgidInfo"
+    :draggable="true"
+    :width="dialogWidth"
   >
     <div v-loading="spinning" element-loading-text="加载中...">
       <el-form label-width="80px">
@@ -316,12 +318,15 @@
         <vue-monaco-editor
           v-model:value="cardjson"
           language="json"
-          theme="vs-dark"
+          :theme="darkMode ? 'vs-dark' : 'vs-light'"
           :options="{ automaticLayout: true }"
           style="height: 400px; margin-top: 20px"
         />
       </div>
-      <el-button type="primary" @click="send = true">发送</el-button>
+      <el-button type="primary" @click="send = true" style="margin-top: 20px">
+        发送
+      </el-button>
+
     </div>
     <SendToChannel
       v-model:visible="send"
@@ -362,9 +367,12 @@
     </template>
     </el-page-header>
     <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
+    <div :style="{ padding: '5px' }"></div>
     <v-text>文本：</v-text>
     <el-input v-model="textmsg" type="textarea" />
-    <el-button type="primary" @click="send = true">发送</el-button>
+      <el-button type="primary" @click="send = true" style="margin-top: 20px">
+        发送
+      </el-button>
 
     <SendToChannel
       v-model:visible="send"
@@ -581,18 +589,20 @@
       ></textarea> -->
       <!-- 编辑器更新时触发事件 -->
       <!-- debug下才显示json编辑器 -->
+      <!-- 根据暗色模式切换 -->
       <div v-if="opendebug">
         <vue-monaco-editor
           v-model:value="deltaContent"
           language="json"
-          theme="vs-dark"
+          :theme="darkMode ? 'vs-dark' : 'vs-light'"
           :options="{ automaticLayout: true }"
           style="height: 400px; margin-top: 20px"
           :onChange="VSonEditorUpdate"
         />
       </div>
-
-      <el-button type="primary" @click="send = true">发送</el-button>
+      <el-button type="primary" @click="send = true" style="margin-top: 20px">
+        发送
+      </el-button>
 
       <SendToChannel
         v-model:visible="send"
@@ -638,6 +648,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { ElMessage } from 'element-plus'
 import 'element-plus/dist/index.css' // 不导入这个的话ElMessage就没有样式
 import type { Themes } from "md-editor-v3";
+import Quill from 'quill';
 
 // 自定义 image handler
 function imageHandler(this: any) {
@@ -651,6 +662,33 @@ function imageHandler(this: any) {
     this.quill.setSelection(range.index + 1);
   }
 }
+
+const BlockEmbed = Quill.import('blots/block/embed');
+
+class DividerBlot extends BlockEmbed {
+  static blotName = 'divider';
+  static tagName = 'hr';
+
+  static create() {
+    const node = super.create();
+    return node;
+  }
+
+  static value(node: HTMLElement) {
+    // 一定要返回字符串
+    return '1';
+  }
+}
+
+// 从 UI 里拿到 icons 对象
+const icons = Quill.import('ui/icons');
+// 注册一个文字图标给 divider
+icons['divider'] = '—';
+
+Quill.register(DividerBlot);
+
+
+
 const editorOptions = {
   theme: "snow",
   modules: {
@@ -665,12 +703,19 @@ const editorOptions = {
         [{ color: [] }, { background: [] }], // 文字颜色、背景颜色
         [{ align: [] }], // 对齐方式
         ["blockquote", "code-block"], // 引用、代码块
-        ["link", "image"], // 插入链接、图片
+        ["link", "image", "divider"], // 插入链接、图片
         ["clean"], // 清除格式
+        
       ],
       handlers: {
         // 覆盖 image 按钮的默认行为
         image: imageHandler,
+        
+        divider: function (this: any) {
+          const range = this.quill.getSelection(true);
+          this.quill.insertEmbed(range.index, 'divider', '', 'user');
+
+        },
       },
     },
   },
@@ -791,6 +836,12 @@ const onEditorUpdate = (content: any) => {
   deltaContent.value = JSON.stringify(content.ops, null, 2);
 };
 const quillRef = ref();
+
+const dialogWidth = ref("50%");
+// 根据设备屏幕宽度调整对话框宽度
+if (window.innerWidth < 768) {
+  dialogWidth.value = "90%";
+}
 
 const VSonEditorUpdate = (value: string) => {
   try {
@@ -1239,6 +1290,14 @@ if (savedTheme === 'dark') {
   toggleDarkMode(true)
 }
 
+setTimeout(() => {
+  const dividerButton = document.querySelector('.ql-divider') as HTMLElement;
+  if (dividerButton && !dividerButton.innerText.trim()) {
+    dividerButton.innerText = '⎯';
+  }
+}, 0);
+
+
 // 本地存储读取gid
 const gidlocal = localStorage.getItem("gid");
 if (gidlocal) {
@@ -1255,4 +1314,7 @@ if (gidlocal) {
   align-items: center;
   width: 100%;
 }
+
+
+
 </style>

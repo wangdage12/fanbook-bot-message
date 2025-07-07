@@ -3,3 +3,7 @@ declare module "*.vue" {
   const component: DefineComponent<any, any, any>;
   export default component;
 }
+declare module 'quill' {
+  import Quill from 'quill/core';
+  export default Quill;
+}
