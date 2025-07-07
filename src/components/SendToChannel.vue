@@ -4,6 +4,7 @@
     title="发送到频道"
     @open="onOpen"
     width="420px"
+    :draggable="true"
   >
     <!-- 加载遮罩 -->
     <div v-loading="spinning">
