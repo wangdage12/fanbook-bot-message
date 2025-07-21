@@ -44,6 +44,7 @@
     "jsdom": "^25.0.1",
     "npm-run-all2": "^7.0.1",
     "prettier": "^3.6.2",
+    "rollup-plugin-visualizer": "^6.0.3",
     "sass": "^1.89.2",
     "typescript": "^5.8.3",
     "unplugin-auto-import": "^19.3.0",

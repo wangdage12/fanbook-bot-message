@@ -766,8 +766,7 @@ def info():
         headers={'Content-Type': 'application/json'}
         body=json.dumps({'guild_id':gid,'user_id':'0'})
         response = requests.post(url, headers=headers, data=body)
-        # print(response.text)
-        logger.info(response.text)
+        # logger.info(response.text)
         d=json.loads(response.text)
         gname=d['result']['name']
         logger.info(f'服务器{gid}({gname})获取基本信息成功')
@@ -777,27 +776,49 @@ def info():
         logger.info(f'服务器{gid}获取基本信息失败'+ str(e))
         return {'ok': False, 'white': False, 'black': False, 'msg': '获取基本信息失败'}
 
-# 短id查询用户
+# 查询用户
 @app.route('/searchUser', methods=['GET'])
 def searchUser():
-    # Post: /api/bot/{bot token}/searchGuildMemberByName
-    """搜索服务器成员，输入服务器id和用户短id，返回用户信息
+    """
+    搜索服务器成员，输入服务器id和用户短id(或者昵称)，返回用户信息
     """
     gid = flask.request.args.get('gid')
     shortid = flask.request.args.get('shortid')
     if not shortid or not gid:
         return {'ok': False, 'msg': '缺少参数'}
-    url=f'https://a1.fanbook.cn/api/bot/{bottoken}/searchGuildMemberByName'
-    headers={'Content-Type': 'application/json'}
-    body=json.dumps({'guild_id': int(gid), 'username': [shortid]})
-    response = requests.post(url, headers=headers, data=body)
-    d = json.loads(response.text)
-    print(d)
-    if d['ok'] == True and 'result' in d and len(d['result']) > 0:
-        logger.info(f'服务器{gid}搜索用户{shortid}成功')
-        return {'ok': True, 'data': [{"value": str(d['result'][0]['user']['id']), "label": str(d['result'][0]['user']['first_name'])}], 'msg': '搜索用户成功'}
-    logger.info(f'服务器{gid}搜索用户{shortid}失败')
-    return {'ok': False, 'data': [], 'msg': '搜索用户失败，可能是用户不存在'}
+
+    url_by_name = f'https://a1.fanbook.cn/api/bot/{bottoken}/searchGuildMemberByName'
+    url_by_query = f'https://a1.fanbook.cn/api/bot/{bottoken}/searchGuildMember'
+    headers = {'Content-Type': 'application/json'}
+
+    # 通过短id查询
+    body_name = json.dumps({'guild_id': int(gid), 'username': [shortid]})
+    res_name = requests.post(url_by_name, headers=headers, data=body_name)
+    d = res_name.json()
+
+    # 通过昵称查询
+    body_query = json.dumps({'guild_id': int(gid), 'query': shortid})
+    res_query = requests.post(url_by_query, headers=headers, data=body_query)
+    searRes = res_query.json()
+
+    logger.info(f'搜索用户: byName={d}, byQuery={searRes}')
+
+    # 合并两个结果，去重（以 user id 为唯一标识）
+    users = {}
+    if d.get('ok') and 'result' in d:
+        for item in d['result']:
+            u = item['user']
+            users[u['id']] = {"value": str(u['id']), "label": str(u['first_name'])}
+
+    if searRes.get('ok') and 'result' in searRes:
+        for item in searRes['result']:
+            u = item['user']
+            users[u['id']] = {"value": str(u['id']), "label": str(u['first_name'])}
+
+    if users:
+        return {'ok': True, 'data': list(users.values()), 'msg': '搜索用户成功'}
+    else:
+        return {'ok': False, 'data': [], 'msg': '搜索用户失败，可能是用户不存在'}
 
 @app.route('/', methods=['GET'])
 def index():
