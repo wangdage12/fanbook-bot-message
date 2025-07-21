@@ -17,6 +17,8 @@ coverage
 /cypress/videos/
 /cypress/screenshots/
 
+stats.html
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -37,3 +39,4 @@ coverage
 config.json
 server/data.json
 server/token.json
+server/tasks

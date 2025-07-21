@@ -71,10 +71,10 @@
           <el-divider />
 
           <h3>提及成员</h3>
-          <el-form-item label="短ID：">
+          <el-form-item label="ID或昵称">
             <el-input
               v-model="shortid"
-              placeholder="请输入短ID"
+              placeholder="请输入短ID或者成员昵称"
               @blur="searchUser"
             />
           </el-form-item>
@@ -368,7 +368,7 @@
     </el-page-header>
     <!-- <f-alert :alert-list="alertList1" simple title="注意：" type="warning" /> -->
     <div :style="{ padding: '5px' }"></div>
-    <v-text>文本：</v-text>
+    <span>文本内容：</span>
     <el-input v-model="textmsg" type="textarea" />
       <el-button type="primary" @click="send = true" style="margin-top: 20px">
         发送
@@ -863,30 +863,37 @@ const onconsole = () => {
 
 const haveGinfo = ref(false);
 
-const copycid = () => {
-  // 复制频道ID时需要${#selectedValue.value}格式
-  navigator.clipboard.writeText(`\${#${selectedValue.value}}`);
+// 简化复制
+const copyToClipboard = (text: string) => {
+  // 捕获异常
+  try{
+  navigator.clipboard.writeText(text);
   ElMessage({
     message: "复制成功",
     type: "success",
   });
+  }catch(e){
+    ElMessage({
+      message: "复制失败，请手动复制",
+      type: "error",
+    });
+    console.error("fuck，什么78浏览器不支持复制文本？ \n", e);
+  }
+};
+
+const copycid = () => {
+  // 复制频道ID时需要${#selectedValue.value}格式
+  copyToClipboard(`\${#${selectedValue.value}}`);
 };
 const copygupid = () => {
   // 复制角色ID时需要${@&groupid.value}格式
-  navigator.clipboard.writeText(`\${@&${groupid.value}}`);
-  ElMessage({
-    message: "复制成功",
-    type: "success",
-  });
+  copyToClipboard(`\${@&${groupid.value}}`);
 };
 const copymid = () => {
   // 复制成员ID时需要${@!memberid.value}格式
-  navigator.clipboard.writeText(`\${@!${memberid.value}}`);
-  ElMessage({
-    message: "复制成功",
-    type: "success",
-  });
+  copyToClipboard(`\${@!${memberid.value}}`);
 };
+
 
 const testButton = () => {
   testButtonSum.value++;
