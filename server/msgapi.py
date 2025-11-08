@@ -274,72 +274,139 @@ def get_guild(token='',guid='',userid=''):#获取服务器信息
 if not os.path.exists(TASK_DIR[:-1]):
     os.makedirs(TASK_DIR[:-1])
 
-def SendMessageForAllUser(clid='',gid='',token='',text='',sl=0,yz=0,name='',Ttime=''):
-    # global roks,errs,texttypes,ids
+def SendMessageForAllUser(clid='', gid='', token='', text='', sl=0, yz=0, name='', Ttime=''):
     if ENABLE_PROFILING:
-        # 启动性能分析器
         profiler = Profiler()
         profiler.start()
-    err=errs[ids.index(name)]
-    texttype=texttypes[ids.index(name)]
-    
-    chlid=str(clid)
-    gid=str(gid)
-    botid='1'
 
-    # qx=sendMessage(token=token,chlid=chlid,text='1')
+    # ---- 基础检查 ----
+    if name not in ids:
+        logger.error(f"name '{name}' 不存在于 ids 中")
+        return
 
-    notend=True
-    userids=[]
-    tabsdata=0
+    idx = ids.index(name)
+    err = errs[idx]
+    texttype = texttypes[idx]
+
+    chlid = str(clid)
+    gid = str(gid)
+    botid = '1' # 这个不管是多少都是一样的
+
+    userids = []
+    tabsdata = 0
 
     try:
-        if True:# if qx["ok"]==true or qx["ok"]==True:
-            logger.info('验证成功，机器人有权限发送消息')
-            roks[ids.index(name)]-=1
-            try:
-                try:
-                    while notend:
-                        cylb=get_members(token=token,guid=gid,userid=botid,chlid=chlid,tabs=[{"start":tabsdata, "end":tabsdata+99}],name=name)
-                        rangesdata=cylb['result']["ops"][0]
-                        #rangesdata=json.loads(rangesdata[0])
-                        rangesdata=rangesdata['items']
-                        #print(rangesdata)
-                        for x in rangesdata:
-                            datatype=x.keys()
-                            datatype=list(datatype)
-                            if datatype[0]=='User':
-                                userids.append(x['User']['user_id'])
-                        logger.info(f'获取成员列表成功，已获取{str(len(userids))}个成员')
-                        Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)],"msg":"正在获取成员列表","time":Ttime,"time_remaining":str(len(userids)*0.25)})
-                        if len(rangesdata)<99:
-                            logger.info(f'获取成员列表完成，共获取{str(len(userids))}个成员')
-                            notend=False
-                            Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)],"msg":"获取完成，即将发送消息","time":Ttime,"time_remaining":str(len(userids)*0.25)})
-                            #print(userids)
-                        tabsdata+=99
-                    for x in userids:
-                        #print(x)
-                        sendMessage(token=token,chlid=x,text=text,sl=sl,name=name)
-                        sl+=1
-                        Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)]+1,"msg":"正在发送消息","time":Ttime,"time_remaining":str((len(userids)-sl)*0.25)})
-                    if ENABLE_PROFILING:
-                        profiler.stop()
-                    
-                        with open('SendMessageForAllUser_profile.html', 'w') as f:
-                            f.write(profiler.output_html())
+        logger.info('开始验证机器人权限')
+        roks[idx] -= 1
 
-                    logger.info(f'发送完成，成功{str(roks[ids.index(name)]+1)}次，失败{str(errs[ids.index(name)])}次')
-                    Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)]+1,"msg":"发送完成","time":Ttime,"endtime":time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),"time_remaining":'0'})
-                except:
-                    logger.error('获取成员数量失败，你应该检查机器人id和频道id')
-                    print(cylb)
-            except:
-                logger.error('获取成员数量失败，你应该检查服务器id')
-        else:
-            logger.error('机器人没有权限发送消息或没有发送消息白名单')
-    except:
-        logger.error('token不正确')
+        # ---- 分页获取成员 ----
+        while True:
+            try:
+                cylb = get_members(
+                    token=token,
+                    guid=gid,
+                    userid=botid,
+                    chlid=chlid,
+                    tabs=[{"start": tabsdata, "end": tabsdata + 99}],
+                    name=name
+                )
+            except Exception as e:
+                logger.exception("获取成员列表失败（API 调用异常）")
+                break
+
+            ops = cylb.get('result', {}).get('ops', [])
+            if not ops:
+                logger.error("成员列表返回为空或格式不正确")
+                break
+
+            items = ops[0].get('items', [])
+            for item in items:
+                if 'User' in item:
+                    userids.append(item['User']['user_id'])
+
+            logger.info(f'获取成员成功，当前累计 {len(userids)} 人')
+
+            Wjson(
+                filename=TASK_DIR + name + '.json',
+                data={
+                    "usernum": len(userids),
+                    "sendnum": sl,
+                    "errnum": errs[idx],
+                    "oknum": roks[idx],
+                    "msg": "正在获取成员列表",
+                    "time": Ttime,
+                    "time_remaining": str(len(userids) * 0.25)
+                }
+            )
+
+            # 是否已取完
+            if len(items) < 99:
+                logger.info(f'成员列表获取完成，总共 {len(userids)} 人')
+                Wjson(
+                    filename=TASK_DIR + name + '.json',
+                    data={
+                        "usernum": len(userids),
+                        "sendnum": sl,
+                        "errnum": errs[idx],
+                        "oknum": roks[idx],
+                        "msg": "获取完成，即将发送消息",
+                        "time": Ttime,
+                        "time_remaining": str(len(userids) * 0.25)
+                    }
+                )
+                break
+
+            tabsdata += 99
+
+        # ---- 发送消息 ----
+        for uid in userids:
+            try:
+                sendMessage(token=token, chlid=uid, text=text, sl=sl, name=name)
+            except Exception as e:
+                logger.exception(f"发送消息失败 user_id={uid}")
+                errs[idx] += 1
+                continue
+
+            sl += 1
+            Wjson(
+                filename=TASK_DIR + name + '.json',
+                data={
+                    "usernum": len(userids),
+                    "sendnum": sl,
+                    "errnum": errs[idx],
+                    "oknum": roks[idx] + 1,
+                    "msg": "正在发送消息",
+                    "time": Ttime,
+                    "time_remaining": str((len(userids) - sl) * 0.25)
+                }
+            )
+
+        # ---- profiling ----
+        if ENABLE_PROFILING:
+            profiler.stop()
+            with open('SendMessageForAllUser_profile.html', 'w') as f:
+                f.write(profiler.output_html())
+
+        logger.info(f'发送完成：成功 {roks[idx] + 1} 次，失败 {errs[idx]} 次')
+
+        Wjson(
+            filename=TASK_DIR + name + '.json',
+            data={
+                "usernum": len(userids),
+                "sendnum": sl,
+                "errnum": errs[idx],
+                "oknum": roks[idx] + 1,
+                "msg": "发送完成",
+                "time": Ttime,
+                "endtime": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                "time_remaining": '0'
+            }
+        )
+
+    except Exception as e:
+        logger.exception("SendMessageForAllUser 运行时出现未捕获异常")
+        logger.error("可能是 token 不正确")
+
 
 # SendMessageForAllUser(clid=433212507046281216,gid='433204455396081664',token='0f2de7ac66727cd9fcec1ee43559c561f6abf3f1e202c5a06c2ae4a3f6cf94ab795fbfbe39ad311a18ad1ff314388d1c',text='text',name=str(uuid.uuid1()))
 

@@ -336,6 +336,7 @@
       :onOpen="getchannel"
       :gid="gid"
       @send="sendmsg"
+      @gid-change="(val) => gid = val"
     />
     <div v-if="notKey">
       <Result
@@ -382,6 +383,7 @@
       :onOpen="getchannel"
       :gid="gid"
       @send="sendtext"
+      @gid-change="(val) => gid = val"
     />
     <div v-if="notKey">
       <Result
@@ -612,6 +614,7 @@
         :onOpen="getchannel"
         :gid="gid"
         @send="sendRichText"
+        @gid-change="(val) => gid = val"
       />
     </div>
   </div></el-config-provider>

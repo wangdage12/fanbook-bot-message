@@ -97,7 +97,8 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:visible', 'send'])
+// 添加 gid-change emit
+const emit = defineEmits(['update:visible', 'send', 'gid-change'])
 
 // 弹窗显隐
 const localVisible = ref(props.visible)
@@ -113,6 +114,11 @@ watch(
   () => props.gid,
   (val) => (gid.value = val),
 )
+
+// 监听本地gid变化，emit到父组件
+watch(gid, (val) => {
+  emit('gid-change', val)
+})
 
 // 其余表单数据
 const key = ref('')
