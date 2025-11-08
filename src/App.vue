@@ -321,7 +321,13 @@
           :theme="darkMode ? 'vs-dark' : 'vs-light'"
           :options="{ automaticLayout: true }"
           style="height: 400px; margin-top: 20px"
-        />
+        >
+              <template #default>
+        正在加载编辑器...
+        <br>
+        可能需要几分钟，请耐心等待
+      </template>
+      </vue-monaco-editor>
       </div>
       <el-button type="primary" @click="send = true" style="margin-top: 20px">
         发送
@@ -600,7 +606,14 @@
           :options="{ automaticLayout: true }"
           style="height: 400px; margin-top: 20px"
           :onChange="VSonEditorUpdate"
-        />
+          
+        >
+      <template #default>
+        正在加载编辑器...
+        <br>
+        可能需要几分钟，请耐心等待
+      </template>
+      </vue-monaco-editor>
       </div>
       <el-button type="primary" @click="send = true" style="margin-top: 20px">
         发送

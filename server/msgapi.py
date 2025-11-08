@@ -97,9 +97,14 @@ errs=[]
 texttypes=[]
 ids=[]
 
-def Wjson(filename,data):
-    with open(filename,'w',encoding='utf-8') as f:
-        json.dump(data,f,indent=4,ensure_ascii=False)
+def Wjson(filename, data):
+    # 原子写入：先写入临时文件，再替换
+    tmpfile = filename + '.tmp'
+    with open(tmpfile, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmpfile, filename)
     return 0
 
 def Rjson(filename):
@@ -361,7 +366,7 @@ def SendMessageForAllUser(clid='', gid='', token='', text='', sl=0, yz=0, name='
         # ---- 发送消息 ----
         for uid in userids:
             try:
-                sendMessage(token=token, chlid=uid, text=text, sl=sl, name=name)
+                sendMessage(token=token, chlid=uid, text=text, sl=sl, name=name, session=session)
             except Exception as e:
                 logger.exception(f"发送消息失败 user_id={uid}")
                 errs[idx] += 1
