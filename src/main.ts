@@ -43,6 +43,7 @@ Sentry.init({
   tracePropagationTargets: [
     "https://wdgmsg.loca.lt/",
     "https://botmsg.wdg.cloudns.ch/",
+    "http://server.wdg.cloudns.ch:8001/",
   ],
   // Session Replay
   replaysSessionSampleRate: 0.3, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.

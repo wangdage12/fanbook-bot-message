@@ -41,7 +41,7 @@
                 :value="opt.value"
               />
             </el-select>
-            <el-button type="primary" :disabled="!selectedValue" @click="copycid">复制</el-button>
+            <el-button type="success" :disabled="!selectedValue" @click="copycid">复制</el-button>
           </el-form-item>
           <el-form-item>
             <span>频道ID: {{ selectedValue }}</span>

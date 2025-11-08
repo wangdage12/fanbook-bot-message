@@ -19,8 +19,12 @@ import sentry_sdk
 import ctypes
 import re
 import os
+from pyinstrument import Profiler
 
 TASK_DIR = 'tasks/'
+
+# 是否开启性能分析
+ENABLE_PROFILING = True
 
 logger.info("加载完成，开始初始化")
 
@@ -53,14 +57,6 @@ warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
 bottoken=''
 
-# 创建一个数据库用于存储激活码，包含激活码名称、是否已使用和自增id
-# conn = sqlite3.connect('codedata.db')
-# c = conn.cursor()
-# c.execute('''CREATE TABLE IF NOT EXISTS codes
-#              (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, used INTEGER)''')
-# conn.commit()
-
-
 app = flask.Flask(__name__)
 
 @app.after_request
@@ -69,6 +65,32 @@ def cors(environ):
     environ.headers['Access-Control-Allow-Method']='*'
     environ.headers['Access-Control-Allow-Headers']='*'
     return environ
+
+def build_session():
+    session = requests.Session()
+
+    # 开启 keep-alive（requests 默认是 keep-alive，但显式写更稳）
+    session.headers.update({
+        "Connection": "keep-alive"
+    })
+
+    # 配置连接池（关键）
+    adapter = requests.adapters.HTTPAdapter(
+        pool_connections=100,  # 总连接池
+        pool_maxsize=100,      # 单主机最大连接数
+        max_retries=3,         # 重试
+        pool_block=True        # 连接不够时等待
+    )
+
+    # 对 https 应用这个连接池
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+
+    return session
+
+# 全局 Session（而不是每次函数调用内部创建）
+session = build_session()
+# session.verify = False 
 
 roks=[]
 errs=[]
@@ -190,7 +212,7 @@ def is_valid_color(color):
 
 bottoken=Rjson('token.json')['token']
 
-def get_members(token='',tabs=[{"start":0, "end":99}],guid='',chlid='',userid='',name=''):#获取成员列表
+def get_members(token='',tabs=[{"start":0, "end":99}],guid='',chlid='',userid='',name='',session=session):#获取成员列表
     url=f'https://a1.fanbook.mobi/api/bot/{token}/v2/guild/members'
     headers={'Content-Type': 'application/json'}
     body={
@@ -200,10 +222,10 @@ def get_members(token='',tabs=[{"start":0, "end":99}],guid='',chlid='',userid=''
     "ranges":tabs
 }
     body=json.dumps(body)
-    r=requests.post(url,headers=headers,data=body,verify=False)
+    r=session.post(url,headers=headers,data=body)
     return json.loads(r.text)
 
-def sendMessage(token='',chlid='',text='',sl=0,yz=0,name=''):
+def sendMessage(token='',chlid='',text='',sl=0,yz=0,name='',session=session):
     # global roks,errs,texttypes,ids
     rok=roks[ids.index(name)]
     err=errs[ids.index(name)]
@@ -212,7 +234,7 @@ def sendMessage(token='',chlid='',text='',sl=0,yz=0,name=''):
     headers={'Content-Type': 'application/json'}
     #print(chlid)
     body=json.dumps({"user_id":int(chlid)})
-    r=requests.post(url,headers=headers,data=body,verify=False)
+    r=session.post(url,headers=headers,data=body)
     da=json.loads(r.text)
     #print(da)
     if yz==1:
@@ -225,7 +247,7 @@ def sendMessage(token='',chlid='',text='',sl=0,yz=0,name=''):
             return da
     chlid=da["result"]["id"]
     try:
-        r=fanbookbotapi.sendmessage(token=token,chatid=int(chlid),type=texttype,text=text)
+        r=fanbookbotapi.sendmessage(token=token,chatid=int(chlid),type=texttype,text=text,session=session)
         da=json.loads(r.text)
         if da["ok"]==True:
             logger.info(f'发送第{str(sl+1)}条消息成功')
@@ -245,7 +267,7 @@ def get_guild(token='',guid='',userid=''):#获取服务器信息
     "user_id":userid,}
     
     body=json.dumps(body)
-    r=requests.post(url,headers=headers,data=body,verify=False)
+    r=session.post(url,headers=headers,data=body)
     return json.loads(r.text)
 
 # 如果没有tasks文件夹，则创建一个
@@ -254,6 +276,10 @@ if not os.path.exists(TASK_DIR[:-1]):
 
 def SendMessageForAllUser(clid='',gid='',token='',text='',sl=0,yz=0,name='',Ttime=''):
     # global roks,errs,texttypes,ids
+    if ENABLE_PROFILING:
+        # 启动性能分析器
+        profiler = Profiler()
+        profiler.start()
     err=errs[ids.index(name)]
     texttype=texttypes[ids.index(name)]
     
@@ -297,8 +323,12 @@ def SendMessageForAllUser(clid='',gid='',token='',text='',sl=0,yz=0,name='',Ttim
                         sendMessage(token=token,chlid=x,text=text,sl=sl,name=name)
                         sl+=1
                         Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)]+1,"msg":"正在发送消息","time":Ttime,"time_remaining":str((len(userids)-sl)*0.25)})
+                    if ENABLE_PROFILING:
+                        profiler.stop()
+                    
+                        with open('SendMessageForAllUser_profile.html', 'w') as f:
+                            f.write(profiler.output_html())
 
-                    time.sleep(1)
                     logger.info(f'发送完成，成功{str(roks[ids.index(name)]+1)}次，失败{str(errs[ids.index(name)])}次')
                     Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)]+1,"msg":"发送完成","time":Ttime,"endtime":time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),"time_remaining":'0'})
                 except:
@@ -488,7 +518,7 @@ def send_message():
         return {'ok':True,'taskid':taskid}
     else:
         logger.info(f'服务器{gid}发送卡片消息到{cid}')
-        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='fanbook',text=json.dumps({'width': None, 'height': None, 'data':json.dumps(data) , 'notification': None, 'come_from_icon': None, 'come_from_name': None, 'template': None, 'no_seat_toast': None, 'type': 'messageCard'})).text
+        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='fanbook',text=json.dumps({'width': None, 'height': None, 'data':json.dumps(data) , 'notification': None, 'come_from_icon': None, 'come_from_name': None, 'template': None, 'no_seat_toast': None, 'type': 'messageCard'}),session=session).text
         data=json.loads(r)
         if data['ok']==True:
             return data
@@ -554,7 +584,7 @@ def sendtext():
         return {'ok':True,'taskid':taskid}
     else:
         logger.info(f'服务器{gid}发送消息到频道{cid}')
-        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='text',text=text).text
+        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='text',text=text,session=session).text
         data=json.loads(r)
         if data['ok']==True:
             return data
@@ -694,7 +724,7 @@ def sendRichText():
             "v2":json.dumps(delta),# 这个是富文本的Quill v2版本，包含所有样式，不传这个只传上面的document会导致富文本样式丢失
             "v":2# 这个是富文本的版本号，必须为2
         }
-        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='fanbook',text=json.dumps(msg)).text
+        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='fanbook',text=json.dumps(msg),session=session).text
         data=json.loads(r)
         if data['ok']==True:
             return data
@@ -726,7 +756,7 @@ def get():
     url=f'https://a1.fanbook.cn/api/bot/{bottoken}/channel/list'
     headers={'Content-Type': 'application/json'}
     body=json.dumps({'guild_id':gid})
-    response = requests.post(url, headers=headers, data=body)
+    response = session.post(url, headers=headers, data=body)
     pd=[]
     d=json.loads(response.text)
     if d['ok']==True:
@@ -765,7 +795,7 @@ def info():
         url=f'https://a1.fanbook.cn/api/bot/{bottoken}/guild'
         headers={'Content-Type': 'application/json'}
         body=json.dumps({'guild_id':gid,'user_id':'0'})
-        response = requests.post(url, headers=headers, data=body)
+        response = session.post(url, headers=headers, data=body)
         # logger.info(response.text)
         d=json.loads(response.text)
         gname=d['result']['name']
@@ -793,12 +823,12 @@ def searchUser():
 
     # 通过短id查询
     body_name = json.dumps({'guild_id': int(gid), 'username': [shortid]})
-    res_name = requests.post(url_by_name, headers=headers, data=body_name)
+    res_name = session.post(url_by_name, headers=headers, data=body_name)
     d = res_name.json()
 
     # 通过昵称查询
     body_query = json.dumps({'guild_id': int(gid), 'query': shortid})
-    res_query = requests.post(url_by_query, headers=headers, data=body_query)
+    res_query = session.post(url_by_query, headers=headers, data=body_query)
     searRes = res_query.json()
 
     logger.info(f'搜索用户: byName={d}, byQuery={searRes}')
