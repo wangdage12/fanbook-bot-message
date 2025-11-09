@@ -146,7 +146,7 @@
         <span>消息推送工具</span>
       </div>
     </template>
-      <Flex wrap="wrap" style="width: 100%; max-width: 650px">
+      <Flex wrap="wrap" style="width: 100%; max-width: 950px">
         <el-button type="primary" @click="p = 3" plain>
           <template #icon>
             <SendHorizontal :size="23" :style="{ fill: 'none' }" />
@@ -164,6 +164,12 @@
             <LetterText :size="23" :style="{ fill: 'none' }" />
           </template>
           发送富文本
+        </el-button>
+        <el-button type="primary" @click="p = 6" plain>
+          <template #icon>
+            <braces :size="23" :style="{ fill: 'none' }" />
+          </template>
+          发送原始消息数据
         </el-button>
         <!-- task为空就不显示 -->
         <div v-if="taskid.length != 0">
@@ -630,7 +636,57 @@
         @gid-change="(val) => gid = val"
       />
     </div>
-  </div></el-config-provider>
+  </div>
+  
+  <div v-if="p == 6">
+    <el-page-header @back="back1">
+      <template #content>
+        <span class="text-large font-600 mr-3"> 发送原始消息数据 </span>
+      </template>
+              <template #extra>
+      <el-switch
+        v-model="darkMode"
+        inline-prompt          
+        @change="toggleDarkMode"
+      >
+        <template #active-action>🌙</template>
+        <template #inactive-action>☀️</template>
+      </el-switch>
+    </template>
+    </el-page-header>
+    <el-alert title="警告：该功能需要你熟悉Fanbook的原始消息格式，由于理论上可以发送任何消息，所以批量发送消息只有你的服务器为可信服务器时才能使用" type="warning" />
+    <vue-monaco-editor
+      v-model:value="rawjson"
+      language="json"
+      :theme="darkMode ? 'vs-dark' : 'vs-light'"
+      :options="{ automaticLayout: true }"
+      style="height: 600px; margin-top: 10px"
+    >
+      <template #default>
+        正在加载编辑器...
+        <br>
+        可能需要几分钟，请耐心等待
+      </template>
+    </vue-monaco-editor>
+    <el-button type="" @click="detectMessageType" style="margin-top: 20px">
+      检查消息类型
+    </el-button>
+    <el-button type="primary" @click="send = true" style="margin-top: 20px">
+      发送
+    </el-button>
+    <SendToChannel
+      v-model:visible="send"
+      :options="options"
+      :spinning="spinning"
+      :loading="sdloading"
+      :onOpen="getchannel"
+      :gid="gid"
+      @send="sendRawJson"
+      @gid-change="(val) => gid = val"
+    />
+  </div>
+
+  </el-config-provider>
 </template>
 
 <script setup lang="ts">
@@ -658,6 +714,7 @@ import {
   MessageSquareCode,
   LetterText,
   Logs,
+  Braces,
 } from "lucide-vue-next";
 import SendToChannel from "@/components/SendToChannel.vue";
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
@@ -804,6 +861,7 @@ const toolbars: ToolbarNames[] = [
 
 const deltaContent = ref("");
 const cardjson = ref(""); // 存储服务器构建好的卡片json
+const rawjson = ref(""); // 存储原始消息json
 
 const groups = ref<{ label: string; value: string }[]>([]); // 服务器角色列表
 const groupid = ref(""); // 选中的角色id
@@ -880,10 +938,21 @@ const onconsole = () => {
 const haveGinfo = ref(false);
 
 // 简化复制
-const copyToClipboard = (text: string) => {
+const copyToClipboard = async (text: string) => {
   // 捕获异常
   try{
-  navigator.clipboard.writeText(text);
+      if (navigator.clipboard && window.isSecureContext) {
+      // HTTPS 情况
+      await navigator.clipboard.writeText(text);
+    } else {
+      // 非 HTTPS fallback
+      const input = document.createElement("input");
+      input.value = text;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+    }
   ElMessage({
     message: "复制成功",
     type: "success",
@@ -1217,6 +1286,106 @@ const sendRichText = (payload: {
         if (data.msg == "为了安全性，请点击下方加入服务器按钮，以获取密钥") {
           notKey.value = true;
         }
+      }
+    });
+};
+
+// 发送原始消息数据
+// POST /sendRaw
+// {"gid": "服务器id", "key": "密钥", "cid": "频道id", "jsondata": 原始消息数据, "to_all": true/false}
+const sendRaw = (payload: {
+  gid: string;
+  key: string;
+  channel: string;
+  jsondata: string;
+  to_all: boolean;
+}) => {
+  sdloading.value = true;
+  const url = apiuri.value + `/sendRaw`;
+
+  // 先在外面解析并构建 body，避免在对象字面量里使用 try/catch 导致语法错误
+  let bodyData: string;
+  try {
+    bodyData = JSON.stringify({
+      gid: payload.gid,
+      key: payload.key,
+      cid: payload.channel,
+      jsondata: JSON.parse(payload.jsondata),
+      to_all: payload.to_all,
+    });
+  } catch (e) {
+    sdloading.value = false;
+    ElMessage({message:"发送失败！(无效的JSON格式)",type:"error"});
+    return;
+  }
+
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: bodyData,
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      console.log(data);
+      sdloading.value = false;
+      send.value = false;
+      if (data.ok === true) {
+        if (payload.to_all === true) {
+          ElMessage({message:"任务已创建",type:"success"});
+          taskid.value = data.taskid;
+          // 写入本地存储
+          localStorage.setItem("taskid", data.taskid);
+
+          startPolling();
+          p.value = 4;
+        } else {
+          ElMessage({message:"发送成功！",type:"success"});
+        }
+      } else {
+        ElMessage({message:`发送失败！(${data.msg})`,type:"error"});
+        if (data.msg == "为了安全性，请点击下方加入服务器按钮，以获取密钥") {
+          notKey.value = true;
+        }
+      }
+    });
+};
+
+const sendRawJson = (payload: {
+  gid: string;
+  key: string;
+  channel: string;
+  sendall: boolean;
+}) => {
+  sendRaw({
+    gid: payload.gid,
+    key: payload.key,
+    channel: payload.channel,
+    jsondata: rawjson.value,
+    to_all: payload.sendall,
+  });
+};
+
+// 检查消息类型
+// POST /detectMessageType
+const detectMessageType = () => {
+  const url = apiuri.value + `/detectMessageType`;
+
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ jsondata: rawjson.value }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      console.log(data);
+      if (data.ok === true) {
+        ElMessage({message:`消息类型：${data.msg}`,type:"success"});
+      } else {
+        ElMessage({message:`检测失败！(${data.msg})`,type:"error"});
       }
     });
 };

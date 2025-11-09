@@ -104,18 +104,54 @@ def Wjson(filename, data):
         json.dump(data, f, indent=4, ensure_ascii=False)
         f.flush()
         os.fsync(f.fileno())
-    os.replace(tmpfile, filename)
+    # 增加重试机制，防止 PermissionError
+    for i in range(10):
+        try:
+            os.replace(tmpfile, filename)
+            break
+        except PermissionError:
+            if i == 9:
+                raise
+            time.sleep(0.1)
     return 0
 
 def Rjson(filename):
-    with open(filename,'r',encoding='utf-8') as f:
-        data=json.load(f)
-    return data
+    # 加重试机制，防止读取时文件被占用
+    for i in range(10):
+        try:
+            with open(filename,'r',encoding='utf-8') as f:
+                data=json.load(f)
+            return data
+        except (PermissionError, json.JSONDecodeError):
+            if i == 9:
+                raise
+            time.sleep(0.1)
 
 def is_valid_filename(name):
     if len(name) != 36:
         return False
     return re.fullmatch(r'[\w\-]+', name) is not None
+
+# 如果没有data.json文件，则创建一个默认的
+if not os.path.exists('data.json'):
+    default_data = {
+        "black_list": [],
+        "white_list": [],
+        "free_list": ["ALL"],
+        "keys": {
+            "example_guild_id": "example_key"
+        }
+    }
+    Wjson('data.json', default_data)
+    logger.warning("data.json 文件不存在，已创建默认文件，请根据需要修改配置再使用，参见：https://github.com/wangdage12/fanbook-bot-message")
+
+# 如果没有token.json文件，则创建一个默认的
+if not os.path.exists('token.json'):
+    default_token = {
+        "token": "your_bot_token_here"
+    }
+    Wjson('token.json', default_token)
+    logger.warning("token.json 文件不存在，已创建默认文件，请将机器人 token 填入该文件后再使用")
 
 def process_markdown(text):
     # 正则表达式匹配 Markdown 格式的图片
@@ -422,8 +458,12 @@ def get_err_msg(code):
         return '机器人没有权限'
     if code == 1001:
         return '参数错误'
+    if code == 5103:
+        return '消息内容json格式不正确'
     if code == 5104:
         return '消息长度超过限制'
+    if code == 5105:
+        return '不支持该消息类型'
     else:
         return '未知错误：'+str(code)
 
@@ -807,6 +847,119 @@ def sendRichText():
             except:
                 data['msg']='未知错误'
             return data
+        
+# 发送原始json数据
+@app.route('/sendRaw', methods=['post'])
+def sendRaw():
+    """发送原始json数据到指定频道
+    """
+    data = flask.request.get_json(force=True)  # 获取 JSON 数据
+    cid = data.get('cid')
+    gid = data.get('gid')
+    key = data.get('key')
+    to_all = data.get('to_all')
+    jsondata = data.get('jsondata') 
+    
+    is_black=Rjson('data.json')
+    is_black=is_black['black_list']
+    if gid in is_black:
+        logger.info(f'服务器{gid}发送消息到频道{cid}，但该服务器因为违规已被拉黑')
+        return {'ok':False,'msg':'该服务器因为违规已被拉黑'}
+    
+    keys=Rjson('data.json')
+    keys=keys['keys']
+    key.replace(" ","")
+    gid.replace(" ","")
+    print(gid,']')
+    try:
+        if keys[gid]!=key:
+            logger.info(f'服务器{gid}发送消息到频道{cid}，但密钥错误')
+            return {'ok':False,'msg':'服务器安全密钥错误'}
+    except:
+        logger.info(f'服务器{gid}发送消息到频道{cid}，无密钥')
+        return {'ok':False,'msg':'为了安全性，请点击下方加入服务器按钮，以获取密钥'}
+    
+    logger.info(f'服务器{gid}发送原始json数据到频道{cid}')
+    
+    typeisok=False
+
+    try:
+        if jsondata['type']=='column':
+            logger.info('检测到json数据为卡片类型，进行封装')
+            jsondata={"type":"task","content":jsondata}
+            typeisok=True
+    except:
+        pass
+    try:
+        if jsondata['tag']=='column':
+            logger.info('检测到json数据为复杂卡片类型，进行封装')
+            jsondata={'width': None, 'height': None, 'data':json.dumps(jsondata) , 'notification': None, 'come_from_icon': None, 'come_from_name': None, 'template': None, 'no_seat_toast': None, 'type': 'messageCard'}
+            typeisok=True
+    except:
+        pass
+    if typeisok==False:
+        logger.warning('无法确定json数据格式，直接发送原始数据')
+    if to_all==True:
+        white_list=Rjson('data.json')
+        white_list=white_list['white_list']
+        logger.info(f'服务器{gid}批量发送原始json数据到{cid}')
+        if gid not in white_list:
+            return {'ok':False,'msg':'为了安全性，只有白名单服务器才能使用批量发送原始json数据功能'}
+
+        taskid=str(uuid.uuid1())
+        t = threading.Thread(target=SendMessageForAllUser, args=(int(cid),gid,bottoken,json.dumps(jsondata),0,0,taskid,time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
+        ids.append(taskid)
+        roks.append(0)
+        errs.append(0)
+        texttypes.append('fanbook')
+        # 启动线程
+        t.start()
+        return {'ok':True,'taskid':taskid}
+    r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='fanbook',text=json.dumps(jsondata),session=session).text
+    data=json.loads(r)
+    if data['ok']==True:
+        return data
+    else:
+        logger.warning(f'服务器{gid}发送消息到频道{cid}失败，错误码{data["error_code"]}')
+        logger.debug(f'原始json数据：{jsondata}')
+        try:
+            data['msg']=get_err_msg(data['error_code'])
+        except:
+            data['msg']='未知错误'
+        return data
+    
+# 检测消息类型接口
+@app.route('/detectMessageType', methods=['post'])
+def detectMessageType():
+    """检测消息类型接口
+    """
+    data = flask.request.get_json(force=True)  # 获取 JSON 数据
+    
+    try:
+        jsondata = json.loads(data.get('jsondata')) 
+    except:
+        return {'ok':False,'msg':'json数据格式错误，无法解析'}
+    
+    typeisok=False
+    try:
+        if jsondata['type']=='column':
+            logger.info('检测到json数据为卡片类型')
+            typeisok=True
+            return {'ok':True,'type':'card','msg':'未封装的卡片消息（任务卡片）'}
+    except:
+        pass
+    try:
+        if jsondata['tag']=='column':
+            logger.info('检测到json数据为复杂卡片类型')
+            typeisok=True
+            return {'ok':True,'type':'complex_card','msg':'未封装的复杂卡片消息'}
+    except:
+        pass
+    if typeisok==False:
+        # 无法确定类型
+        logger.info('无法确定json数据格式')
+        logger.debug(f'原始json数据：{jsondata}')
+        return {'ok':True,'type':'unknown','msg':'无法确定消息数据类型'}
     
 @app.route('/getTask', methods=['get'])
 def getTask():
