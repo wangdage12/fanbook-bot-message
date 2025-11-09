@@ -24,7 +24,7 @@ from pyinstrument import Profiler
 TASK_DIR = 'tasks/'
 
 # 是否开启性能分析
-ENABLE_PROFILING = True
+ENABLE_PROFILING = False
 
 logger.info("加载完成，开始初始化")
 
