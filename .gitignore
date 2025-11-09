@@ -40,3 +40,8 @@ config.json
 server/data.json
 server/token.json
 server/tasks
+
+# 分析文件
+stats.html
+server/SendMessageForAllUser_profile.html
+server/profile.html

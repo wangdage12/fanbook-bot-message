@@ -19,8 +19,12 @@ import sentry_sdk
 import ctypes
 import re
 import os
+from pyinstrument import Profiler
 
 TASK_DIR = 'tasks/'
+
+# 是否开启性能分析
+ENABLE_PROFILING = False
 
 logger.info("加载完成，开始初始化")
 
@@ -53,14 +57,6 @@ warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
 bottoken=''
 
-# 创建一个数据库用于存储激活码，包含激活码名称、是否已使用和自增id
-# conn = sqlite3.connect('codedata.db')
-# c = conn.cursor()
-# c.execute('''CREATE TABLE IF NOT EXISTS codes
-#              (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, used INTEGER)''')
-# conn.commit()
-
-
 app = flask.Flask(__name__)
 
 @app.after_request
@@ -70,25 +66,92 @@ def cors(environ):
     environ.headers['Access-Control-Allow-Headers']='*'
     return environ
 
+def build_session():
+    session = requests.Session()
+
+    # 开启 keep-alive（requests 默认是 keep-alive，但显式写更稳）
+    session.headers.update({
+        "Connection": "keep-alive"
+    })
+
+    # 配置连接池（关键）
+    adapter = requests.adapters.HTTPAdapter(
+        pool_connections=100,  # 总连接池
+        pool_maxsize=100,      # 单主机最大连接数
+        max_retries=3,         # 重试
+        pool_block=True        # 连接不够时等待
+    )
+
+    # 对 https 应用这个连接池
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+
+    return session
+
+# 全局 Session（而不是每次函数调用内部创建）
+session = build_session()
+# session.verify = False 
+
 roks=[]
 errs=[]
 texttypes=[]
 ids=[]
 
-def Wjson(filename,data):
-    with open(filename,'w',encoding='utf-8') as f:
-        json.dump(data,f,indent=4,ensure_ascii=False)
+def Wjson(filename, data):
+    # 原子写入：先写入临时文件，再替换
+    tmpfile = filename + '.tmp'
+    with open(tmpfile, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    # 增加重试机制，防止 PermissionError
+    for i in range(10):
+        try:
+            os.replace(tmpfile, filename)
+            break
+        except PermissionError:
+            if i == 9:
+                raise
+            time.sleep(0.1)
     return 0
 
 def Rjson(filename):
-    with open(filename,'r',encoding='utf-8') as f:
-        data=json.load(f)
-    return data
+    # 加重试机制，防止读取时文件被占用
+    for i in range(10):
+        try:
+            with open(filename,'r',encoding='utf-8') as f:
+                data=json.load(f)
+            return data
+        except (PermissionError, json.JSONDecodeError):
+            if i == 9:
+                raise
+            time.sleep(0.1)
 
 def is_valid_filename(name):
     if len(name) != 36:
         return False
     return re.fullmatch(r'[\w\-]+', name) is not None
+
+# 如果没有data.json文件，则创建一个默认的
+if not os.path.exists('data.json'):
+    default_data = {
+        "black_list": [],
+        "white_list": [],
+        "free_list": ["ALL"],
+        "keys": {
+            "example_guild_id": "example_key"
+        }
+    }
+    Wjson('data.json', default_data)
+    logger.warning("data.json 文件不存在，已创建默认文件，请根据需要修改配置再使用，参见：https://github.com/wangdage12/fanbook-bot-message")
+
+# 如果没有token.json文件，则创建一个默认的
+if not os.path.exists('token.json'):
+    default_token = {
+        "token": "your_bot_token_here"
+    }
+    Wjson('token.json', default_token)
+    logger.warning("token.json 文件不存在，已创建默认文件，请将机器人 token 填入该文件后再使用")
 
 def process_markdown(text):
     # 正则表达式匹配 Markdown 格式的图片
@@ -190,7 +253,7 @@ def is_valid_color(color):
 
 bottoken=Rjson('token.json')['token']
 
-def get_members(token='',tabs=[{"start":0, "end":99}],guid='',chlid='',userid='',name=''):#获取成员列表
+def get_members(token='',tabs=[{"start":0, "end":99}],guid='',chlid='',userid='',name='',session=session):#获取成员列表
     url=f'https://a1.fanbook.mobi/api/bot/{token}/v2/guild/members'
     headers={'Content-Type': 'application/json'}
     body={
@@ -200,10 +263,10 @@ def get_members(token='',tabs=[{"start":0, "end":99}],guid='',chlid='',userid=''
     "ranges":tabs
 }
     body=json.dumps(body)
-    r=requests.post(url,headers=headers,data=body,verify=False)
+    r=session.post(url,headers=headers,data=body)
     return json.loads(r.text)
 
-def sendMessage(token='',chlid='',text='',sl=0,yz=0,name=''):
+def sendMessage(token='',chlid='',text='',sl=0,yz=0,name='',session=session):
     # global roks,errs,texttypes,ids
     rok=roks[ids.index(name)]
     err=errs[ids.index(name)]
@@ -212,7 +275,7 @@ def sendMessage(token='',chlid='',text='',sl=0,yz=0,name=''):
     headers={'Content-Type': 'application/json'}
     #print(chlid)
     body=json.dumps({"user_id":int(chlid)})
-    r=requests.post(url,headers=headers,data=body,verify=False)
+    r=session.post(url,headers=headers,data=body)
     da=json.loads(r.text)
     #print(da)
     if yz==1:
@@ -225,7 +288,7 @@ def sendMessage(token='',chlid='',text='',sl=0,yz=0,name=''):
             return da
     chlid=da["result"]["id"]
     try:
-        r=fanbookbotapi.sendmessage(token=token,chatid=int(chlid),type=texttype,text=text)
+        r=fanbookbotapi.sendmessage(token=token,chatid=int(chlid),type=texttype,text=text,session=session)
         da=json.loads(r.text)
         if da["ok"]==True:
             logger.info(f'发送第{str(sl+1)}条消息成功')
@@ -245,71 +308,146 @@ def get_guild(token='',guid='',userid=''):#获取服务器信息
     "user_id":userid,}
     
     body=json.dumps(body)
-    r=requests.post(url,headers=headers,data=body,verify=False)
+    r=session.post(url,headers=headers,data=body)
     return json.loads(r.text)
 
 # 如果没有tasks文件夹，则创建一个
 if not os.path.exists(TASK_DIR[:-1]):
     os.makedirs(TASK_DIR[:-1])
 
-def SendMessageForAllUser(clid='',gid='',token='',text='',sl=0,yz=0,name='',Ttime=''):
-    # global roks,errs,texttypes,ids
-    err=errs[ids.index(name)]
-    texttype=texttypes[ids.index(name)]
-    
-    chlid=str(clid)
-    gid=str(gid)
-    botid='1'
+def SendMessageForAllUser(clid='', gid='', token='', text='', sl=0, yz=0, name='', Ttime=''):
+    if ENABLE_PROFILING:
+        profiler = Profiler()
+        profiler.start()
 
-    # qx=sendMessage(token=token,chlid=chlid,text='1')
+    # ---- 基础检查 ----
+    if name not in ids:
+        logger.error(f"name '{name}' 不存在于 ids 中")
+        return
 
-    notend=True
-    userids=[]
-    tabsdata=0
+    idx = ids.index(name)
+    err = errs[idx]
+    texttype = texttypes[idx]
+
+    chlid = str(clid)
+    gid = str(gid)
+    botid = '1' # 这个不管是多少都是一样的
+
+    userids = []
+    tabsdata = 0
 
     try:
-        if True:# if qx["ok"]==true or qx["ok"]==True:
-            logger.info('验证成功，机器人有权限发送消息')
-            roks[ids.index(name)]-=1
-            try:
-                try:
-                    while notend:
-                        cylb=get_members(token=token,guid=gid,userid=botid,chlid=chlid,tabs=[{"start":tabsdata, "end":tabsdata+99}],name=name)
-                        rangesdata=cylb['result']["ops"][0]
-                        #rangesdata=json.loads(rangesdata[0])
-                        rangesdata=rangesdata['items']
-                        #print(rangesdata)
-                        for x in rangesdata:
-                            datatype=x.keys()
-                            datatype=list(datatype)
-                            if datatype[0]=='User':
-                                userids.append(x['User']['user_id'])
-                        logger.info(f'获取成员列表成功，已获取{str(len(userids))}个成员')
-                        Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)],"msg":"正在获取成员列表","time":Ttime,"time_remaining":str(len(userids)*0.25)})
-                        if len(rangesdata)<99:
-                            logger.info(f'获取成员列表完成，共获取{str(len(userids))}个成员')
-                            notend=False
-                            Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)],"msg":"获取完成，即将发送消息","time":Ttime,"time_remaining":str(len(userids)*0.25)})
-                            #print(userids)
-                        tabsdata+=99
-                    for x in userids:
-                        #print(x)
-                        sendMessage(token=token,chlid=x,text=text,sl=sl,name=name)
-                        sl+=1
-                        Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)]+1,"msg":"正在发送消息","time":Ttime,"time_remaining":str((len(userids)-sl)*0.25)})
+        logger.info('开始验证机器人权限')
+        roks[idx] -= 1
 
-                    time.sleep(1)
-                    logger.info(f'发送完成，成功{str(roks[ids.index(name)]+1)}次，失败{str(errs[ids.index(name)])}次')
-                    Wjson(filename=TASK_DIR+name+'.json',data={"usernum":len(userids),"sendnum":sl,"errnum":errs[ids.index(name)],"oknum":roks[ids.index(name)]+1,"msg":"发送完成","time":Ttime,"endtime":time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),"time_remaining":'0'})
-                except:
-                    logger.error('获取成员数量失败，你应该检查机器人id和频道id')
-                    print(cylb)
-            except:
-                logger.error('获取成员数量失败，你应该检查服务器id')
-        else:
-            logger.error('机器人没有权限发送消息或没有发送消息白名单')
-    except:
-        logger.error('token不正确')
+        # ---- 分页获取成员 ----
+        while True:
+            try:
+                cylb = get_members(
+                    token=token,
+                    guid=gid,
+                    userid=botid,
+                    chlid=chlid,
+                    tabs=[{"start": tabsdata, "end": tabsdata + 99}],
+                    name=name
+                )
+            except Exception as e:
+                logger.exception("获取成员列表失败（API 调用异常）")
+                break
+
+            ops = cylb.get('result', {}).get('ops', [])
+            if not ops:
+                logger.error("成员列表返回为空或格式不正确")
+                break
+
+            items = ops[0].get('items', [])
+            for item in items:
+                if 'User' in item:
+                    userids.append(item['User']['user_id'])
+
+            logger.info(f'获取成员成功，当前累计 {len(userids)} 人')
+
+            Wjson(
+                filename=TASK_DIR + name + '.json',
+                data={
+                    "usernum": len(userids),
+                    "sendnum": sl,
+                    "errnum": errs[idx],
+                    "oknum": roks[idx],
+                    "msg": "正在获取成员列表",
+                    "time": Ttime,
+                    "time_remaining": str(len(userids) * 0.25)
+                }
+            )
+
+            # 是否已取完
+            if len(items) < 99:
+                logger.info(f'成员列表获取完成，总共 {len(userids)} 人')
+                Wjson(
+                    filename=TASK_DIR + name + '.json',
+                    data={
+                        "usernum": len(userids),
+                        "sendnum": sl,
+                        "errnum": errs[idx],
+                        "oknum": roks[idx],
+                        "msg": "获取完成，即将发送消息",
+                        "time": Ttime,
+                        "time_remaining": str(len(userids) * 0.25)
+                    }
+                )
+                break
+
+            tabsdata += 99
+
+        # ---- 发送消息 ----
+        for uid in userids:
+            try:
+                sendMessage(token=token, chlid=uid, text=text, sl=sl, name=name, session=session)
+            except Exception as e:
+                logger.exception(f"发送消息失败 user_id={uid}")
+                errs[idx] += 1
+                continue
+
+            sl += 1
+            Wjson(
+                filename=TASK_DIR + name + '.json',
+                data={
+                    "usernum": len(userids),
+                    "sendnum": sl,
+                    "errnum": errs[idx],
+                    "oknum": roks[idx] + 1,
+                    "msg": "正在发送消息",
+                    "time": Ttime,
+                    "time_remaining": str((len(userids) - sl) * 0.25)
+                }
+            )
+
+        # ---- profiling ----
+        if ENABLE_PROFILING:
+            profiler.stop()
+            with open('SendMessageForAllUser_profile.html', 'w') as f:
+                f.write(profiler.output_html())
+
+        logger.info(f'发送完成：成功 {roks[idx] + 1} 次，失败 {errs[idx]} 次')
+
+        Wjson(
+            filename=TASK_DIR + name + '.json',
+            data={
+                "usernum": len(userids),
+                "sendnum": sl,
+                "errnum": errs[idx],
+                "oknum": roks[idx] + 1,
+                "msg": "发送完成",
+                "time": Ttime,
+                "endtime": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                "time_remaining": '0'
+            }
+        )
+
+    except Exception as e:
+        logger.exception("SendMessageForAllUser 运行时出现未捕获异常")
+        logger.error("可能是 token 不正确")
+
 
 # SendMessageForAllUser(clid=433212507046281216,gid='433204455396081664',token='0f2de7ac66727cd9fcec1ee43559c561f6abf3f1e202c5a06c2ae4a3f6cf94ab795fbfbe39ad311a18ad1ff314388d1c',text='text',name=str(uuid.uuid1()))
 
@@ -320,8 +458,12 @@ def get_err_msg(code):
         return '机器人没有权限'
     if code == 1001:
         return '参数错误'
+    if code == 5103:
+        return '消息内容json格式不正确'
     if code == 5104:
         return '消息长度超过限制'
+    if code == 5105:
+        return '不支持该消息类型'
     else:
         return '未知错误：'+str(code)
 
@@ -488,7 +630,7 @@ def send_message():
         return {'ok':True,'taskid':taskid}
     else:
         logger.info(f'服务器{gid}发送卡片消息到{cid}')
-        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='fanbook',text=json.dumps({'width': None, 'height': None, 'data':json.dumps(data) , 'notification': None, 'come_from_icon': None, 'come_from_name': None, 'template': None, 'no_seat_toast': None, 'type': 'messageCard'})).text
+        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='fanbook',text=json.dumps({'width': None, 'height': None, 'data':json.dumps(data) , 'notification': None, 'come_from_icon': None, 'come_from_name': None, 'template': None, 'no_seat_toast': None, 'type': 'messageCard'}),session=session).text
         data=json.loads(r)
         if data['ok']==True:
             return data
@@ -554,7 +696,7 @@ def sendtext():
         return {'ok':True,'taskid':taskid}
     else:
         logger.info(f'服务器{gid}发送消息到频道{cid}')
-        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='text',text=text).text
+        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='text',text=text,session=session).text
         data=json.loads(r)
         if data['ok']==True:
             return data
@@ -694,7 +836,7 @@ def sendRichText():
             "v2":json.dumps(delta),# 这个是富文本的Quill v2版本，包含所有样式，不传这个只传上面的document会导致富文本样式丢失
             "v":2# 这个是富文本的版本号，必须为2
         }
-        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='fanbook',text=json.dumps(msg)).text
+        r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='fanbook',text=json.dumps(msg),session=session).text
         data=json.loads(r)
         if data['ok']==True:
             return data
@@ -705,6 +847,119 @@ def sendRichText():
             except:
                 data['msg']='未知错误'
             return data
+        
+# 发送原始json数据
+@app.route('/sendRaw', methods=['post'])
+def sendRaw():
+    """发送原始json数据到指定频道
+    """
+    data = flask.request.get_json(force=True)  # 获取 JSON 数据
+    cid = data.get('cid')
+    gid = data.get('gid')
+    key = data.get('key')
+    to_all = data.get('to_all')
+    jsondata = data.get('jsondata') 
+    
+    is_black=Rjson('data.json')
+    is_black=is_black['black_list']
+    if gid in is_black:
+        logger.info(f'服务器{gid}发送消息到频道{cid}，但该服务器因为违规已被拉黑')
+        return {'ok':False,'msg':'该服务器因为违规已被拉黑'}
+    
+    keys=Rjson('data.json')
+    keys=keys['keys']
+    key.replace(" ","")
+    gid.replace(" ","")
+    print(gid,']')
+    try:
+        if keys[gid]!=key:
+            logger.info(f'服务器{gid}发送消息到频道{cid}，但密钥错误')
+            return {'ok':False,'msg':'服务器安全密钥错误'}
+    except:
+        logger.info(f'服务器{gid}发送消息到频道{cid}，无密钥')
+        return {'ok':False,'msg':'为了安全性，请点击下方加入服务器按钮，以获取密钥'}
+    
+    logger.info(f'服务器{gid}发送原始json数据到频道{cid}')
+    
+    typeisok=False
+
+    try:
+        if jsondata['type']=='column':
+            logger.info('检测到json数据为卡片类型，进行封装')
+            jsondata={"type":"task","content":jsondata}
+            typeisok=True
+    except:
+        pass
+    try:
+        if jsondata['tag']=='column':
+            logger.info('检测到json数据为复杂卡片类型，进行封装')
+            jsondata={'width': None, 'height': None, 'data':json.dumps(jsondata) , 'notification': None, 'come_from_icon': None, 'come_from_name': None, 'template': None, 'no_seat_toast': None, 'type': 'messageCard'}
+            typeisok=True
+    except:
+        pass
+    if typeisok==False:
+        logger.warning('无法确定json数据格式，直接发送原始数据')
+    if to_all==True:
+        white_list=Rjson('data.json')
+        white_list=white_list['white_list']
+        logger.info(f'服务器{gid}批量发送原始json数据到{cid}')
+        if gid not in white_list:
+            return {'ok':False,'msg':'为了安全性，只有白名单服务器才能使用批量发送原始json数据功能'}
+
+        taskid=str(uuid.uuid1())
+        t = threading.Thread(target=SendMessageForAllUser, args=(int(cid),gid,bottoken,json.dumps(jsondata),0,0,taskid,time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
+        ids.append(taskid)
+        roks.append(0)
+        errs.append(0)
+        texttypes.append('fanbook')
+        # 启动线程
+        t.start()
+        return {'ok':True,'taskid':taskid}
+    r=fanbookbotapi.sendmessage(token=bottoken,chatid=cid,type='fanbook',text=json.dumps(jsondata),session=session).text
+    data=json.loads(r)
+    if data['ok']==True:
+        return data
+    else:
+        logger.warning(f'服务器{gid}发送消息到频道{cid}失败，错误码{data["error_code"]}')
+        logger.debug(f'原始json数据：{jsondata}')
+        try:
+            data['msg']=get_err_msg(data['error_code'])
+        except:
+            data['msg']='未知错误'
+        return data
+    
+# 检测消息类型接口
+@app.route('/detectMessageType', methods=['post'])
+def detectMessageType():
+    """检测消息类型接口
+    """
+    data = flask.request.get_json(force=True)  # 获取 JSON 数据
+    
+    try:
+        jsondata = json.loads(data.get('jsondata')) 
+    except:
+        return {'ok':False,'msg':'json数据格式错误，无法解析'}
+    
+    typeisok=False
+    try:
+        if jsondata['type']=='column':
+            logger.info('检测到json数据为卡片类型')
+            typeisok=True
+            return {'ok':True,'type':'card','msg':'未封装的卡片消息（任务卡片）'}
+    except:
+        pass
+    try:
+        if jsondata['tag']=='column':
+            logger.info('检测到json数据为复杂卡片类型')
+            typeisok=True
+            return {'ok':True,'type':'complex_card','msg':'未封装的复杂卡片消息'}
+    except:
+        pass
+    if typeisok==False:
+        # 无法确定类型
+        logger.info('无法确定json数据格式')
+        logger.debug(f'原始json数据：{jsondata}')
+        return {'ok':True,'type':'unknown','msg':'无法确定消息数据类型'}
     
 @app.route('/getTask', methods=['get'])
 def getTask():
@@ -726,7 +981,7 @@ def get():
     url=f'https://a1.fanbook.cn/api/bot/{bottoken}/channel/list'
     headers={'Content-Type': 'application/json'}
     body=json.dumps({'guild_id':gid})
-    response = requests.post(url, headers=headers, data=body)
+    response = session.post(url, headers=headers, data=body)
     pd=[]
     d=json.loads(response.text)
     if d['ok']==True:
@@ -765,7 +1020,7 @@ def info():
         url=f'https://a1.fanbook.cn/api/bot/{bottoken}/guild'
         headers={'Content-Type': 'application/json'}
         body=json.dumps({'guild_id':gid,'user_id':'0'})
-        response = requests.post(url, headers=headers, data=body)
+        response = session.post(url, headers=headers, data=body)
         # logger.info(response.text)
         d=json.loads(response.text)
         gname=d['result']['name']
@@ -793,12 +1048,12 @@ def searchUser():
 
     # 通过短id查询
     body_name = json.dumps({'guild_id': int(gid), 'username': [shortid]})
-    res_name = requests.post(url_by_name, headers=headers, data=body_name)
+    res_name = session.post(url_by_name, headers=headers, data=body_name)
     d = res_name.json()
 
     # 通过昵称查询
     body_query = json.dumps({'guild_id': int(gid), 'query': shortid})
-    res_query = requests.post(url_by_query, headers=headers, data=body_query)
+    res_query = session.post(url_by_query, headers=headers, data=body_query)
     searRes = res_query.json()
 
     logger.info(f'搜索用户: byName={d}, byQuery={searRes}')

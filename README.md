@@ -58,7 +58,9 @@ python msgapi.py
 
 ## 后续操作
 
-部署完以后不能马上使用，先改server目录下的data.json，里面是一些基本配置  
+部署完以后不能马上使用，先改server目录下的data.json和token.json，若没有，这两个文件将在启动后端时自动生成，里面是一些基本配置  
+
+> ``data.json``
 
 | 键名 | 类型 | 示例 | 描述 |
 | - | - | - | - |
@@ -69,6 +71,12 @@ python msgapi.py
 
 如果black_list和white_list里面同时有同一个服务器id，那么总是显示封禁  
 修改data.json实时生效
+
+> ``token.json``
+
+| 键名 | 类型 | 示例 | 描述 |
+| - | - | - | - |
+| token | string | "your_bot_token_here" | 机器人的token |
 
 ## 收费方法
 

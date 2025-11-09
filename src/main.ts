@@ -3,15 +3,27 @@ import App from "./App.vue";
 import * as Sentry from "@sentry/vue";
 import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
-import { install as MonacoPlugin } from "@guolao/vue-monaco-editor";
+import { install as MonacoPlugin, loader } from "@guolao/vue-monaco-editor";
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
 const app = createApp(App);
 app.component("QuillEditor", QuillEditor);
 app.use(MonacoPlugin, {
   paths: {
-    vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/",
+    vs: "https://unpkg.com/monaco-editor@0.52.2/min/vs",
   },
+});
+
+// 在 loader.config 中指定语言
+loader.config({
+  paths: {
+    vs: 'https://unpkg.com/monaco-editor@0.52.2/min/vs'
+  },
+  'vs/nls': {
+    availableLanguages: {
+      '*': 'zh-cn'   // 这里把 '*' 映射为你希望的语言，比如 zh-cn（中文简体）
+    }
+  }
 });
 
 Sentry.init({
@@ -43,6 +55,7 @@ Sentry.init({
   tracePropagationTargets: [
     "https://wdgmsg.loca.lt/",
     "https://botmsg.wdg.cloudns.ch/",
+    "http://server.wdg.cloudns.ch:8001/",
   ],
   // Session Replay
   replaysSessionSampleRate: 0.3, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
