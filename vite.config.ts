@@ -13,17 +13,18 @@ export default defineConfig({
   plugins: [vue(), vueDevTools(), sentryVitePlugin({
     org: "wdg1122",
     project: "botmsg"
-  }),
-  AutoImport({
+  }), AutoImport({
       resolvers: [ElementPlusResolver()],
       // 可选：自动导入 Element Plus 的 API，如 ElMessage 等
       imports: ['vue', 'vue-router'],
       dts: 'src/auto-imports.d.ts',
-    }),
-    Components({
-      resolvers: [ElementPlusResolver()],
-      dts: 'src/components.d.ts',
-    }), visualizer({ open: true })],
+    }), Components({
+    resolvers: [ElementPlusResolver()],
+    dts: 'src/components.d.ts',
+  }), visualizer({ open: true }), sentryVitePlugin({
+    org: "wdg1122",
+    project: "botmsg"
+  })],
 
   resolve: {
     alias: {
