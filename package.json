@@ -24,7 +24,7 @@
     "lucide-vue-next": "^0.525.0",
     "md-editor-v3": "^5.7.1",
     "vue": "^3.5.17",
-    "vue-amazing-ui": "^2.4.14",
+    "vue-amazing-ui": "^2.4.23",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
