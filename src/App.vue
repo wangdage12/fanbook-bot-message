@@ -1500,13 +1500,54 @@ if (gidlocal) {
 </script>
 
 <style scoped>
+
 .alert-content {
+
   display: flex;
+
   justify-content: space-between;
+
   align-items: center;
+
   width: 100%;
+
 }
 
+</style>
 
+
+
+<style>
+/* vue-amazing-ui 设置了全局 caret-color: transparent，需要覆盖 */
+.ql-editor,
+.ql-editor *,
+.ql-editor p,
+.ql-editor span,
+.ql-editor div,
+.ql-editor h1,
+.ql-editor h2,
+.ql-editor h3,
+.ql-editor h4,
+.ql-editor h5,
+.ql-editor h6 {
+  caret-color: #333 !important;
+}
+
+/* 暗色主题 */
+html.dark .ql-editor,
+html.dark .ql-editor *,
+html.dark .ql-editor p,
+html.dark .ql-editor span,
+html.dark .ql-editor div,
+html.dark .ql-editor h1,
+html.dark .ql-editor h2,
+html.dark .ql-editor h3,
+html.dark .ql-editor h4,
+html.dark .ql-editor h5,
+html.dark .ql-editor h6 {
+  caret-color: #fff !important;
+}
 
 </style>
+
+
